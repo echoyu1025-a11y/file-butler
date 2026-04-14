@@ -34,6 +34,7 @@ constexpr const char* kRemoteTimeoutEnv = "AI_FILE_SORTER_REMOTE_LLM_TIMEOUT";
 constexpr const char* kCustomTimeoutEnv = "AI_FILE_SORTER_CUSTOM_LLM_TIMEOUT";
 constexpr size_t kMaxConsistencyHints = 5;
 constexpr size_t kMaxLabelLength = 80;
+constexpr std::string_view kImageDescriptionMarker = "\nImage description: ";
 std::string to_lower_copy_str(std::string value);
 
 std::string trim_copy(std::string value) {
@@ -311,6 +312,49 @@ bool is_heading_like_label(const std::string& value) {
     }
     return lower.find("categorization") != std::string::npos ||
            lower.find("classification") != std::string::npos;
+}
+
+bool contains_any_substring(const std::string& haystack,
+                            std::initializer_list<std::string_view> needles) {
+    for (const std::string_view needle : needles) {
+        if (!needle.empty() && haystack.find(needle) != std::string::npos) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool has_image_description_context(const std::string& prompt_path) {
+    return prompt_path.find(kImageDescriptionMarker) != std::string::npos;
+}
+
+std::string extract_image_description_text(const std::string& prompt_path) {
+    const auto marker_pos = prompt_path.find(kImageDescriptionMarker);
+    if (marker_pos == std::string::npos) {
+        return {};
+    }
+
+    const std::size_t content_pos = marker_pos + kImageDescriptionMarker.size();
+    if (content_pos >= prompt_path.size()) {
+        return {};
+    }
+
+    return prompt_path.substr(content_pos);
+}
+
+bool is_screenshot_like_image_context(const std::string& prompt_name,
+                                      const std::string& prompt_path) {
+    const std::string lowered_name = to_lower_copy_str(prompt_name);
+    const std::string lowered_description = to_lower_copy_str(extract_image_description_text(prompt_path));
+    return contains_any_substring(lowered_name, {
+               "screenshot", "screen", "interface", "dashboard", "webpage", "website",
+               "admin", "browser", "window", "mockup", "wireframe", "layout", "form"
+           }) ||
+           contains_any_substring(lowered_description, {
+               "screenshot", "screen capture", "user interface", "ui", "dashboard",
+               "webpage", "website", "admin panel", "browser window", "application window",
+               "app interface", "desktop interface", "form", "layout", "mockup", "wireframe"
+           });
 }
 
 std::vector<std::string> split_segments(const std::string& line, std::string_view delimiter) {
@@ -963,14 +1007,18 @@ std::optional<CategorizedFile> CategorizationService::categorize_single_entry(
     const std::string prompt_path = prompt_override ? prompt_override->path : entry.full_path;
     const std::string prompt_path_display = Utils::abbreviate_user_path(prompt_path);
     const bool use_consistency_hints = settings.get_use_consistency_hints();
+    const bool rich_image_context = has_image_description_context(prompt_path);
     const std::string extension = extract_extension(entry.file_name);
     const std::string signature = make_file_signature(entry.type, extension);
     std::string hint_block;
-    if (use_consistency_hints) {
+    if (use_consistency_hints && !rich_image_context) {
         const auto hints = collect_consistency_hints(signature, session_history, extension, entry.type);
         hint_block = format_hint_block(hints);
     }
-    const std::string combined_context = build_combined_context(hint_block);
+    const std::string combined_context = build_combined_context(hint_block,
+                                                                prompt_name,
+                                                                prompt_path,
+                                                                entry.type);
 
     DatabaseManager::ResolvedCategory resolved;
     bool retried_after_backoff = false;
@@ -1039,13 +1087,44 @@ std::optional<CategorizedFile> CategorizationService::categorize_single_entry(
     return result;
 }
 
-std::string CategorizationService::build_combined_context(const std::string& hint_block) const
+std::string CategorizationService::build_combined_context(const std::string& hint_block,
+                                                          const std::string& prompt_name,
+                                                          const std::string& prompt_path,
+                                                          FileType file_type) const
 {
     std::string combined_context;
     const std::string whitelist_block = build_whitelist_context();
     const std::string language_block = build_category_language_context();
+    const bool rich_image_context =
+        file_type == FileType::File && has_image_description_context(prompt_path);
+    std::string image_block;
+
+    if (rich_image_context) {
+        std::ostringstream image_guidance;
+        image_guidance
+            << "Image categorization guidance:\n"
+            << "- Categorize the subject matter shown in the image, not merely the file format.\n"
+            << "- Treat screenshots, webpage captures, dashboards, forms, mockups, and app interfaces as images depicting content.\n"
+            << "- Do not classify a PNG/JPG/WebP screenshot as Software, Operating Systems, Installers, Databases, or similar artifact categories unless the file itself is actually such an artifact.\n"
+            << "- Use the image description, visible text, and scene context to choose a content-focused category and subcategory.\n";
+
+        if (is_screenshot_like_image_context(prompt_name, prompt_path)) {
+            image_guidance
+                << "- For UI-like screenshots, prefer labels that describe what is on screen over generic software or operating-system buckets.\n"
+                << "- A screenshot of software is usually not the installer, package, ISO, or operating system itself.\n";
+        }
+
+        image_block = image_guidance.str();
+    }
+
     if (!language_block.empty()) {
         combined_context += language_block;
+    }
+    if (!image_block.empty()) {
+        if (!combined_context.empty()) {
+            combined_context += "\n\n";
+        }
+        combined_context += image_block;
     }
     if (settings.get_use_whitelist() && !whitelist_block.empty()) {
         if (core_logger) {

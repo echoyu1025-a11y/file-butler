@@ -152,9 +152,15 @@ private:
     /**
      * @brief Combines language, whitelist, and hint blocks into a single prompt context.
      * @param hint_block Consistency hint block.
+     * @param prompt_name Name used in the categorization prompt.
+     * @param prompt_path Path/context payload used in the categorization prompt.
+     * @param file_type File or directory being categorized.
      * @return Combined prompt context.
      */
-    std::string build_combined_context(const std::string& hint_block) const;
+    std::string build_combined_context(const std::string& hint_block,
+                                       const std::string& prompt_name = {},
+                                       const std::string& prompt_path = {},
+                                       FileType file_type = FileType::File) const;
     DatabaseManager::ResolvedCategory localize_resolved_category(
         ILLMClient& llm,
         const DatabaseManager::ResolvedCategory& resolved) const;

@@ -47,18 +47,23 @@ private:
 class PromptCaptureLLM : public ILLMClient {
 public:
     PromptCaptureLLM(std::shared_ptr<std::string> captured_path,
+                     std::shared_ptr<std::string> captured_context,
                      std::shared_ptr<int> calls,
                      std::string response)
         : captured_path_(std::move(captured_path)),
+          captured_context_(std::move(captured_context)),
           calls_(std::move(calls)),
           response_(std::move(response)) {}
 
     std::string categorize_file(const std::string&,
                                 const std::string& file_path,
                                 FileType,
-                                const std::string&) override {
+                                const std::string& consistency_context) override {
         ++(*calls_);
         *captured_path_ = file_path;
+        if (captured_context_) {
+            *captured_context_ = consistency_context;
+        }
         return response_;
     }
 
@@ -71,6 +76,7 @@ public:
 
 private:
     std::shared_ptr<std::string> captured_path_;
+    std::shared_ptr<std::string> captured_context_;
     std::shared_ptr<int> calls_;
     std::string response_;
 };
@@ -637,6 +643,7 @@ TEST_CASE("CategorizationService passes image descriptions through prompt overri
     auto factory = [captured_path, calls]() {
         return std::make_unique<PromptCaptureLLM>(
             captured_path,
+            std::shared_ptr<std::string>{},
             calls,
             "Category: Nature\nSubcategory: Mountains");
     };
@@ -659,6 +666,88 @@ TEST_CASE("CategorizationService passes image descriptions through prompt overri
     CHECK(captured_path->find(suggested_name) != std::string::npos);
     CHECK(captured_path->find("\nImage description: " + description) != std::string::npos);
     CHECK(captured_path->find("legacy_name.jpg") == std::string::npos);
+}
+
+TEST_CASE("CategorizationService adds subject-focused guidance for screenshot-like image prompts") {
+    TempDir base_dir;
+    EnvVarGuard config_guard("AI_FILE_SORTER_CONFIG_DIR", base_dir.path().string());
+    Settings settings;
+    DatabaseManager db(settings.get_config_dir());
+    CategorizationService service(settings, db, nullptr);
+
+    const std::string prompt_name = "dashboard_interface.png";
+    const std::string prompt_path = MainAppTestAccess::build_image_prompt_path(
+        (base_dir.path() / prompt_name).string(),
+        prompt_name,
+        "A screenshot of a dashboard interface with charts, navigation, and visible labels.");
+
+    const std::string context = CategorizationServiceTestAccess::build_combined_context(
+        service,
+        {},
+        prompt_name,
+        prompt_path,
+        FileType::File);
+
+    CHECK(context.find("Image categorization guidance:") != std::string::npos);
+    CHECK(context.find("Categorize the subject matter shown in the image") != std::string::npos);
+    CHECK(context.find("Do not classify a PNG/JPG/WebP screenshot as Software") != std::string::npos);
+    CHECK(context.find("prefer labels that describe what is on screen") != std::string::npos);
+}
+
+TEST_CASE("CategorizationService skips extension-only consistency hints for rich image prompts") {
+    TempDir base_dir;
+    EnvVarGuard config_guard("AI_FILE_SORTER_CONFIG_DIR", base_dir.path().string());
+    Settings settings;
+    settings.set_use_consistency_hints(true);
+    DatabaseManager db(settings.get_config_dir());
+    CategorizationService service(settings, db, nullptr);
+
+    TempDir data_dir;
+    const std::string dir_path = data_dir.path().string();
+    const auto existing = db.resolve_category("Operating Systems", "Dashboards");
+    REQUIRE(existing.taxonomy_id > 0);
+    REQUIRE(db.insert_or_update_file_with_categorization(
+        "older_dashboard.png", "F", dir_path, existing, true, std::string(), false));
+
+    const std::string file_name = "screenshot-33.png";
+    const std::string full_path = (data_dir.path() / file_name).string();
+    const std::string prompt_name = "computer_interface_dark.png";
+    const std::string prompt_path = MainAppTestAccess::build_image_prompt_path(
+        full_path,
+        prompt_name,
+        "A screenshot of a dark computer interface with panels and navigation.");
+    const std::vector<FileEntry> files = {FileEntry{full_path, file_name, FileType::File}};
+
+    std::atomic<bool> stop_flag{false};
+    auto calls = std::make_shared<int>(0);
+    auto captured_path = std::make_shared<std::string>();
+    auto captured_context = std::make_shared<std::string>();
+    auto factory = [captured_path, captured_context, calls]() {
+        return std::make_unique<PromptCaptureLLM>(
+            captured_path,
+            captured_context,
+            calls,
+            "Category: Images\nSubcategory: Screenshots");
+    };
+
+    const auto categorized = service.categorize_entries(
+        files,
+        true,
+        stop_flag,
+        {},
+        {},
+        {},
+        {},
+        factory,
+        [prompt_name, prompt_path](const FileEntry&) {
+            return CategorizationService::PromptOverride{prompt_name, prompt_path};
+        });
+
+    REQUIRE(categorized.size() == 1);
+    CHECK(*calls == 1);
+    CHECK(captured_path->find(prompt_name) != std::string::npos);
+    CHECK(captured_context->find("Image categorization guidance:") != std::string::npos);
+    CHECK(captured_context->find("Recent assignments for similar items:") == std::string::npos);
 }
 
 TEST_CASE("CategorizationService stores canonical English labels and persists translated taxonomy labels") {
