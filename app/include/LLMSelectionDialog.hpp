@@ -9,8 +9,10 @@
 #include <QDialog>
 
 #include <atomic>
+#include <filesystem>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -81,6 +83,7 @@ private:
         QPushButton* download_button{nullptr};
         QPushButton* delete_button{nullptr};
         std::unique_ptr<LLMDownloader> downloader;
+        std::optional<std::filesystem::path> resolved_artifact_path;
         std::atomic<bool> is_downloading{false};
     };
 

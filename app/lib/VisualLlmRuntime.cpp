@@ -15,25 +15,6 @@ std::string to_lower_copy(std::string value)
     return value;
 }
 
-std::optional<std::filesystem::path> resolve_artifact_path(
-    const std::filesystem::path& primary,
-    const VisualModelArtifactDescriptor& descriptor)
-{
-    if (std::filesystem::exists(primary)) {
-        return primary;
-    }
-
-    const auto llm_dir = std::filesystem::path(Utils::get_default_llm_destination());
-    for (const auto alt_name : descriptor.fallback_filenames) {
-        const auto candidate = llm_dir / std::filesystem::path(std::string(alt_name));
-        if (std::filesystem::exists(candidate)) {
-            return candidate;
-        }
-    }
-
-    return std::nullopt;
-}
-
 } // namespace
 
 std::optional<std::filesystem::path> VisualLlmRuntime::Backend::path_for(VisualModelArtifactKind kind) const
@@ -117,24 +98,14 @@ std::optional<VisualLlmRuntime::Backend> VisualLlmRuntime::resolve_active_backen
 
     for (const auto& artifact : descriptor.artifacts) {
         const char* env_url = std::getenv(artifact.url_env);
-        std::filesystem::path primary_path;
-        try {
-            primary_path = std::filesystem::path(
-                Utils::make_default_path_to_file_from_download_url(env_url));
-        } catch (...) {
-            if (error) {
-                *error = "Failed to resolve visual LLM file paths.";
-            }
-            return std::nullopt;
-        }
-
-        const auto resolved_path = resolve_artifact_path(primary_path, artifact);
+        const auto preferred_path = visual_artifact_storage_path(descriptor, artifact);
+        const auto resolved_path = resolve_visual_artifact_path(descriptor, artifact, env_url);
         if (!resolved_path) {
             if (error) {
                 if (artifact.kind == VisualModelArtifactKind::Model) {
-                    *error = "Visual LLM model file is missing: " + primary_path.string();
+                    *error = "Visual LLM model file is missing: " + preferred_path.string();
                 } else {
-                    *error = "Visual LLM mmproj file is missing: " + primary_path.string();
+                    *error = "Visual LLM mmproj file is missing: " + preferred_path.string();
                 }
             }
             return std::nullopt;

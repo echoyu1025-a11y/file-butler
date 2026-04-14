@@ -36,6 +36,13 @@ void write_bytes(const std::filesystem::path& path, std::size_t count)
     }
 }
 
+void write_download_metadata(const std::filesystem::path& artifact_path, const std::string& url)
+{
+    std::ofstream meta(artifact_path.string() + ".aifs.meta", std::ios::trunc);
+    meta << "url=" << url << "\n";
+    meta << "content_length=16\n";
+}
+
 bool wait_for_label(QLabel* label, const QString& starts_with, std::chrono::milliseconds timeout)
 {
     const auto deadline = std::chrono::steady_clock::now() + timeout;
@@ -103,8 +110,7 @@ TEST_CASE("Visual model entry shows resume state for partial downloads") {
     REQUIRE(entry.status_label != nullptr);
     REQUIRE(entry.downloader != nullptr);
 
-    const std::filesystem::path dest_path =
-        Utils::make_default_path_to_file_from_download_url(model_url);
+    const std::filesystem::path dest_path(entry.downloader->get_download_destination());
     write_bytes(dest_path, 4);
     LLMDownloader::LLMDownloaderTestAccess::set_resume_headers(*entry.downloader, 16);
 
@@ -192,5 +198,47 @@ TEST_CASE("Visual backend selection switches descriptor-driven download state") 
     REQUIRE(gemma_entry.status_label != nullptr);
     CHECK(gemma_entry.status_label->text() ==
           QStringLiteral("Missing download URL environment variable (GEMMA3_4B_MODEL_URL)."));
+}
+
+TEST_CASE("Visual dialog does not mark another backend's legacy generic mmproj as downloaded") {
+    EnvVarGuard platform_guard("QT_QPA_PLATFORM", std::string("offscreen"));
+    QtAppContext qt_context;
+
+    TempDir temp;
+    EnvVarGuard home_guard("HOME", temp.path().string());
+    EnvVarGuard config_guard("AI_FILE_SORTER_CONFIG_DIR", temp.path().string());
+
+    const std::string llava_model_url = "https://llava.example/models/llava-model.gguf";
+    const std::string llava_mmproj_url = "https://llava.example/models/mmproj-model-f16.gguf";
+    const std::string gemma_model_url = "https://gemma.example/models/gemma-3-4b-it-Q4_K_M.gguf";
+    const std::string gemma_mmproj_url = "https://gemma.example/models/mmproj-model-f16.gguf";
+
+    EnvVarGuard llava_model_guard("LLAVA_MODEL_URL", llava_model_url);
+    EnvVarGuard llava_mmproj_guard("LLAVA_MMPROJ_URL", llava_mmproj_url);
+    EnvVarGuard llava_vicuna_model_guard("LLAVA_VICUNA_MODEL_URL", std::nullopt);
+    EnvVarGuard llava_vicuna_mmproj_guard("LLAVA_VICUNA_MMPROJ_URL", std::nullopt);
+    EnvVarGuard gemma_model_guard("GEMMA3_4B_MODEL_URL", gemma_model_url);
+    EnvVarGuard gemma_mmproj_guard("GEMMA3_4B_MMPROJ_URL", gemma_mmproj_url);
+
+    const auto legacy_mmproj_path =
+        std::filesystem::path(Utils::make_default_path_to_file_from_download_url(llava_mmproj_url));
+    write_bytes(legacy_mmproj_path, 16);
+    write_download_metadata(legacy_mmproj_path, llava_mmproj_url);
+
+    const auto* gemma_descriptor = find_visual_model_descriptor("gemma-3-4b-it");
+    REQUIRE(gemma_descriptor != nullptr);
+    const auto gemma_model_path =
+        visual_artifact_storage_path(*gemma_descriptor, gemma_descriptor->artifacts[0]);
+    write_bytes(gemma_model_path, 16);
+
+    Settings settings;
+    settings.set_visual_model_id("gemma-3-4b-it");
+
+    LLMSelectionDialog dialog(settings);
+
+    const auto gemma_mmproj_entry =
+        LLMSelectionDialogTestAccess::visual_entry_for_env_var(dialog, "GEMMA3_4B_MMPROJ_URL");
+    REQUIRE(gemma_mmproj_entry.status_label != nullptr);
+    CHECK(gemma_mmproj_entry.status_label->text() == QStringLiteral("Download required."));
 }
 #endif

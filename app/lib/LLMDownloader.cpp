@@ -52,9 +52,11 @@ TestHooks::LLMDownloadProbe& download_probe_slot() {
 } // namespace
 
 
-LLMDownloader::LLMDownloader(const std::string& download_url)
+LLMDownloader::LLMDownloader(const std::string& download_url,
+                             std::string destination_path)
     : url(download_url),
-      destination_dir(Utils::get_default_llm_destination())
+      destination_dir(Utils::get_default_llm_destination()),
+      explicit_download_destination(std::move(destination_path))
 {
     set_download_destination();
     last_progress_update = std::chrono::steady_clock::now();
@@ -62,8 +64,15 @@ LLMDownloader::LLMDownloader(const std::string& download_url)
 
 
 void LLMDownloader::set_download_destination() {
-    std::filesystem::create_directories(destination_dir);
-    download_destination = Utils::make_default_path_to_file_from_download_url(url);
+    if (!explicit_download_destination.empty()) {
+        const auto explicit_path = std::filesystem::path(explicit_download_destination);
+        destination_dir = explicit_path.parent_path().string();
+        std::filesystem::create_directories(explicit_path.parent_path());
+        download_destination = explicit_path.string();
+    } else {
+        std::filesystem::create_directories(destination_dir);
+        download_destination = Utils::make_default_path_to_file_from_download_url(url);
+    }
     load_cached_metadata();
     migrate_legacy_partial_download_if_needed();
 }
@@ -745,6 +754,7 @@ void LLMDownloader::LLMDownloaderTestAccess::set_real_content_length(LLMDownload
 void LLMDownloader::LLMDownloaderTestAccess::set_download_destination(LLMDownloader& downloader,
                                                                       const std::string& path) {
     downloader.destination_dir = std::filesystem::path(path).parent_path().string();
+    downloader.explicit_download_destination = path;
     downloader.download_destination = path;
 }
 

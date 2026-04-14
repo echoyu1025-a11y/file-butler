@@ -1404,6 +1404,8 @@ void LLMSelectionDialog::set_visual_status_message(VisualLlmDownloadEntry& entry
 
 void LLMSelectionDialog::refresh_visual_llm_download_entry(VisualLlmDownloadEntry& entry)
 {
+    entry.resolved_artifact_path.reset();
+
     if (entry.remote_url_label) {
         entry.remote_url_label->setText(tr("Remote URL: unknown"));
     }
@@ -1441,15 +1443,26 @@ void LLMSelectionDialog::refresh_visual_llm_download_entry(VisualLlmDownloadEntr
                                                             QStringLiteral("#1565c0")));
     }
 
+    std::string destination_path;
+    if (entry.backend_descriptor && entry.artifact_descriptor) {
+        destination_path =
+            visual_artifact_storage_path(*entry.backend_descriptor, *entry.artifact_descriptor).string();
+        entry.resolved_artifact_path =
+            resolve_visual_artifact_path(*entry.backend_descriptor, *entry.artifact_descriptor, env_url);
+    }
+
     if (!entry.downloader) {
-        entry.downloader = std::make_unique<LLMDownloader>(env_url);
+        entry.downloader = std::make_unique<LLMDownloader>(env_url, destination_path);
     } else {
         entry.downloader->set_download_url(env_url);
     }
 
     if (entry.local_path_label) {
+        const std::string path_text = entry.resolved_artifact_path.has_value()
+                                          ? entry.resolved_artifact_path->string()
+                                          : entry.downloader->get_download_destination();
         entry.local_path_label->setText(format_markup_label(tr("Local path"),
-                                                            QString::fromStdString(entry.downloader->get_download_destination()),
+                                                            QString::fromStdString(path_text),
                                                             QStringLiteral("#2e7d32")));
     }
 
@@ -1486,15 +1499,27 @@ void LLMSelectionDialog::update_visual_llm_download_entry(VisualLlmDownloadEntry
                                                             QStringLiteral("#1565c0")));
     }
     if (entry.local_path_label) {
+        const std::string path_text = entry.resolved_artifact_path.has_value()
+                                          ? entry.resolved_artifact_path->string()
+                                          : entry.downloader->get_download_destination();
         entry.local_path_label->setText(format_markup_label(tr("Local path"),
-                                                            QString::fromStdString(entry.downloader->get_download_destination()),
+                                                            QString::fromStdString(path_text),
                                                             QStringLiteral("#2e7d32")));
     }
-    const auto local_status = entry.downloader->get_local_download_status();
+
+    const bool artifact_ready = entry.resolved_artifact_path.has_value();
+    const auto local_status = artifact_ready
+                                  ? LLMDownloader::DownloadStatus::Complete
+                                  : entry.downloader->get_local_download_status();
     if (entry.file_size_label) {
-        long long size = entry.downloader->get_real_content_length();
-        if (size <= 0 && local_status == LLMDownloader::DownloadStatus::Complete) {
-            size = local_file_size_or_zero(entry.downloader->get_download_destination());
+        long long size = 0;
+        if (artifact_ready) {
+            size = local_file_size_or_zero(entry.resolved_artifact_path->string());
+        } else {
+            size = entry.downloader->get_real_content_length();
+            if (size <= 0 && local_status == LLMDownloader::DownloadStatus::Complete) {
+                size = local_file_size_or_zero(entry.downloader->get_download_destination());
+            }
         }
         if (size > 0) {
             entry.file_size_label->setText(format_markup_label(tr("File size"),
@@ -1505,7 +1530,9 @@ void LLMSelectionDialog::update_visual_llm_download_entry(VisualLlmDownloadEntry
         }
     }
 
-    const auto status = entry.downloader->get_download_status();
+    const auto status = artifact_ready
+                            ? LLMDownloader::DownloadStatus::Complete
+                            : entry.downloader->get_download_status();
     switch (status) {
     case LLMDownloader::DownloadStatus::Complete:
         if (entry.progress_bar) {
@@ -1681,16 +1708,33 @@ void LLMSelectionDialog::handle_delete_visual_download(VisualLlmDownloadEntry& e
 
     std::error_code ec;
     bool removed_any = false;
-    if (std::filesystem::exists(path, ec)) {
-        removed_any = std::filesystem::remove(path, ec) || removed_any;
+    std::vector<std::filesystem::path> removal_paths;
+    const auto enqueue_path = [&removal_paths](const std::filesystem::path& candidate) {
+        if (candidate.empty()) {
+            return;
+        }
+        if (std::find(removal_paths.begin(), removal_paths.end(), candidate) == removal_paths.end()) {
+            removal_paths.push_back(candidate);
+        }
+    };
+
+    enqueue_path(std::filesystem::path(path));
+    enqueue_path(std::filesystem::path(entry.downloader->get_partial_download_destination()));
+    enqueue_path(std::filesystem::path(path + ".aifs.meta"));
+
+    if (entry.resolved_artifact_path.has_value()) {
+        enqueue_path(*entry.resolved_artifact_path);
+        enqueue_path(std::filesystem::path(entry.resolved_artifact_path->string() + ".part"));
+        enqueue_path(std::filesystem::path(entry.resolved_artifact_path->string() + ".aifs.meta"));
     }
-    const std::string partial_path = entry.downloader->get_partial_download_destination();
-    if (std::filesystem::exists(partial_path, ec)) {
-        removed_any = std::filesystem::remove(partial_path, ec) || removed_any;
-    }
-    const std::string meta_path = path + ".aifs.meta";
-    if (std::filesystem::exists(meta_path, ec)) {
-        removed_any = std::filesystem::remove(meta_path, ec) || removed_any;
+
+    for (const auto& candidate : removal_paths) {
+        if (std::filesystem::exists(candidate, ec)) {
+            removed_any = std::filesystem::remove(candidate, ec) || removed_any;
+        }
+        if (ec) {
+            break;
+        }
     }
 
     if (ec) {

@@ -19,8 +19,10 @@ public:
     /**
      * @brief Constructs a downloader for the given URL.
      * @param download_url URL of the model to download.
+     * @param destination_path Optional explicit destination path for the download.
      */
-    explicit LLMDownloader(const std::string& download_url);
+    explicit LLMDownloader(const std::string& download_url,
+                           std::string destination_path = {});
     /**
      * @brief Initializes curl state if not already initialized.
      */
@@ -155,6 +157,7 @@ private:
     bool initialized{false};
     std::string url;
     std::string destination_dir;
+    std::string explicit_download_destination;
 
     std::thread download_thread;
     std::map<std::string, std::string> curl_headers;

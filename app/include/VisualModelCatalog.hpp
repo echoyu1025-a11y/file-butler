@@ -4,6 +4,8 @@
  */
 #pragma once
 
+#include <filesystem>
+#include <optional>
 #include <string_view>
 #include <vector>
 
@@ -42,6 +44,8 @@ struct VisualModelArtifactDescriptor {
     const char* display_name;
     /** @brief Environment variable containing the artifact download URL. */
     const char* url_env;
+    /** @brief Stable backend-specific storage filename used for new downloads. */
+    const char* local_storage_name;
     /** @brief Optional fallback filenames searched in the default model directory. */
     std::vector<std::string_view> fallback_filenames;
 };
@@ -80,3 +84,24 @@ const VisualModelDescriptor* find_visual_model_descriptor(std::string_view id);
  * @return Default visual model descriptor.
  */
 const VisualModelDescriptor& default_visual_model_descriptor();
+
+/**
+ * @brief Return the canonical on-disk location for a visual model artifact.
+ * @param backend Backend descriptor owning the artifact.
+ * @param artifact Artifact descriptor to resolve.
+ * @return Backend-specific storage path for new downloads.
+ */
+std::filesystem::path visual_artifact_storage_path(const VisualModelDescriptor& backend,
+                                                   const VisualModelArtifactDescriptor& artifact);
+
+/**
+ * @brief Resolve an existing visual artifact, including legacy flat-file installs.
+ * @param backend Backend descriptor owning the artifact.
+ * @param artifact Artifact descriptor to resolve.
+ * @param download_url Download URL currently configured for the artifact.
+ * @return Resolved on-disk artifact path when available.
+ */
+std::optional<std::filesystem::path> resolve_visual_artifact_path(
+    const VisualModelDescriptor& backend,
+    const VisualModelArtifactDescriptor& artifact,
+    std::string_view download_url);
