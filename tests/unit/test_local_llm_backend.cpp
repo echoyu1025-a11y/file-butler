@@ -122,6 +122,26 @@ TEST_CASE("CUDA override is applied when backend is available") {
     REQUIRE(params.n_gpu_layers == 7);
 }
 
+TEST_CASE("CUDA backend reports low GPU memory before load") {
+    TempModelFile model(48, 64 * 1024 * 1024);
+    EnvVarGuard backend("AI_FILE_SORTER_GPU_BACKEND", "cuda");
+    EnvVarGuard disable_cuda("GGML_DISABLE_CUDA", std::nullopt);
+    EnvVarGuard override_ngl("AI_FILE_SORTER_N_GPU_LAYERS", std::nullopt);
+    CudaProbeGuard guard;
+    TestHooks::set_cuda_availability_probe([] { return true; });
+    TestHooks::set_cuda_memory_probe([] {
+        Utils::CudaMemoryInfo info;
+        info.free_bytes = 1ULL * 1024ULL * 1024ULL;
+        info.total_bytes = 4ULL * 1024ULL * 1024ULL * 1024ULL;
+        return info;
+    });
+
+    const auto result = LocalLLMTestAccess::prepare_model_params_result_for_testing(
+        model.path().string());
+    REQUIRE(result.params.n_gpu_layers == 0);
+    REQUIRE(result.status == LocalLLMClient::Status::GpuLowMemoryFallbackToCpu);
+}
+
 TEST_CASE("Auto backend prefers CUDA when both backends are possible") {
     TempModelFile model;
     EnvVarGuard backend("AI_FILE_SORTER_GPU_BACKEND", std::nullopt);
@@ -209,6 +229,28 @@ TEST_CASE("Vulkan backend derives layer count from memory probe") {
         model.path().string());
     REQUIRE(params.n_gpu_layers > 0);
     REQUIRE(params.n_gpu_layers <= 48);
+}
+
+TEST_CASE("Vulkan backend reports low GPU memory before load") {
+    TempModelFile model(48, 64 * 1024 * 1024);
+    EnvVarGuard backend("AI_FILE_SORTER_GPU_BACKEND", "vulkan");
+    EnvVarGuard override_ngl("AI_FILE_SORTER_N_GPU_LAYERS", std::nullopt);
+    EnvVarGuard llama_device("LLAMA_ARG_DEVICE", std::nullopt);
+    BackendProbeGuard guard;
+    TestHooks::set_backend_availability_probe([](std::string_view) {
+        return true;
+    });
+    TestHooks::set_backend_memory_probe([](std::string_view) {
+        TestHooks::BackendMemoryInfo info;
+        info.memory.free_bytes = 1ULL * 1024ULL * 1024ULL;
+        info.memory.total_bytes = 4ULL * 1024ULL * 1024ULL * 1024ULL;
+        return info;
+    });
+
+    const auto result = LocalLLMTestAccess::prepare_model_params_result_for_testing(
+        model.path().string());
+    REQUIRE(result.params.n_gpu_layers == 0);
+    REQUIRE(result.status == LocalLLMClient::Status::GpuLowMemoryFallbackToCpu);
 }
 
 TEST_CASE("Vulkan backend falls back to CPU when memory metrics are unavailable") {

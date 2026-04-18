@@ -1097,6 +1097,11 @@ Bitte öffnen Sie diesen Link manuell:
             <translation>[WARN] GPU-Rückfall auf CPU abgelehnt. Analyse wird abgebrochen.</translation>
         </message>
         <message>
+            <location filename="../../lib/MainApp.cpp" line="1985" />
+            <source>[WARN] Available GPU memory is too low for GPU acceleration. Continuing on CPU (slower).</source>
+            <translation>[WARNUNG] Verfügbarer GPU-Speicher reicht für GPU-Beschleunigung nicht aus. Fortsetzung auf der CPU (langsamer).</translation>
+        </message>
+        <message>
             <location filename="../../lib/MainApp.cpp" line="4024" />
             <location filename="../../lib/MainApp.cpp" line="4056" />
             <source>[WARN] GPU acceleration failed to initialize. Continuing on CPU (slower).</source>

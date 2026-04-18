@@ -1454,6 +1454,7 @@ std::optional<int32_t> extract_block_count(const std::string & model_path) {
 
 struct AutoGpuLayerEstimation {
     int32_t layers = -1;
+    bool insufficient_memory = false;
     std::string reason;
 };
 
@@ -1526,6 +1527,34 @@ struct LayerMetrics {
     int32_t total_layers{0};
     double bytes_per_layer{0.0};
 };
+
+void mark_insufficient_gpu_memory(AutoGpuLayerEstimation& result, std::string reason)
+{
+    result.layers = 0;
+    result.insufficient_memory = true;
+    result.reason = std::move(reason);
+}
+
+void mark_preflight_low_memory(std::optional<LocalLLMClient::Status>* preflight_status)
+{
+    if (preflight_status) {
+        *preflight_status = LocalLLMClient::Status::GpuLowMemoryFallbackToCpu;
+    }
+}
+
+bool override_exceeds_available_gpu_memory(int override_layers,
+                                           const AutoGpuLayerEstimation& estimation)
+{
+    if (override_layers <= 0) {
+        return false;
+    }
+
+    if (estimation.insufficient_memory) {
+        return true;
+    }
+
+    return estimation.layers > 0 && override_layers > estimation.layers;
+}
 
 bool populate_layer_metrics(const std::string& model_path,
                             AutoGpuLayerEstimation& result,
@@ -1602,7 +1631,12 @@ bool compute_cuda_budget(const Utils::CudaMemoryInfo& memory_info,
     }
 
     const double max_budget = std::min(budget.approx_free * 0.98, budget.usable_total * 0.90);
-    const double min_budget = budget.usable_total * 0.45;
+    if (max_budget <= 0.0) {
+        mark_insufficient_gpu_memory(result, "insufficient CUDA memory budget");
+        return false;
+    }
+
+    const double min_budget = std::min(budget.approx_free * 0.45, max_budget);
     budget.budget_bytes = std::clamp(budget.budget_bytes, min_budget, max_budget);
     return true;
 }
@@ -1622,8 +1656,7 @@ bool finalize_cuda_estimate(const LayerMetrics& metrics,
     int32_t estimated_layers =
         static_cast<int32_t>(std::floor(budget.budget_bytes / denominator));
     if (estimated_layers <= 0) {
-        result.layers = 0;
-        result.reason = "insufficient CUDA memory budget";
+        mark_insufficient_gpu_memory(result, "insufficient CUDA memory budget");
         return false;
     }
 
@@ -1726,30 +1759,6 @@ bool apply_cpu_backend(llama_model_params& params,
     return true;
 }
 
-bool apply_vulkan_override(llama_model_params& params,
-                           int override_layers,
-                           const std::shared_ptr<spdlog::logger>& logger)
-{
-    if (override_layers == INT_MIN) {
-        return false;
-    }
-
-    if (override_layers <= 0) {
-        params.n_gpu_layers = 0;
-        if (logger) {
-            logger->info("Vulkan backend requested but AI_FILE_SORTER_N_GPU_LAYERS <= 0; using CPU instead.");
-        }
-        return true;
-    }
-
-    params.n_gpu_layers = override_layers;
-    if (logger) {
-        logger->info("Using Vulkan backend with explicit n_gpu_layers override={}",
-                     gpu_layers_to_string(override_layers));
-    }
-    return true;
-}
-
 Utils::CudaMemoryInfo cap_integrated_gpu_memory(const BackendMemoryInfo& backend_memory,
                                                 const std::shared_ptr<spdlog::logger>& logger)
 {
@@ -1767,6 +1776,50 @@ Utils::CudaMemoryInfo cap_integrated_gpu_memory(const BackendMemoryInfo& backend
                      igpu_cap_bytes / to_mib);
     }
     return adjusted;
+}
+
+bool apply_vulkan_override(const std::string& model_path,
+                           llama_model_params& params,
+                           int override_layers,
+                           const BackendMemoryInfo& backend_memory,
+                           const std::shared_ptr<spdlog::logger>& logger,
+                           std::optional<LocalLLMClient::Status>* preflight_status)
+{
+    if (override_layers == INT_MIN) {
+        return false;
+    }
+
+    if (override_layers <= 0) {
+        params.n_gpu_layers = 0;
+        if (logger) {
+            logger->info("Vulkan backend requested but AI_FILE_SORTER_N_GPU_LAYERS <= 0; using CPU instead.");
+        }
+        return true;
+    }
+
+    Utils::CudaMemoryInfo adjusted_memory = cap_integrated_gpu_memory(backend_memory, logger);
+    const AutoGpuLayerEstimation estimation =
+        estimate_gpu_layers_for_cuda(model_path, adjusted_memory);
+    if (override_exceeds_available_gpu_memory(override_layers, estimation)) {
+        params.n_gpu_layers = 0;
+        set_env_var("AI_FILE_SORTER_GPU_BACKEND", "cpu");
+        set_env_var("LLAMA_ARG_DEVICE", "cpu");
+        mark_preflight_low_memory(preflight_status);
+        if (logger) {
+            logger->warn(
+                "Available Vulkan memory is too low for explicit n_gpu_layers={} ({}); using CPU backend.",
+                gpu_layers_to_string(override_layers),
+                estimation.reason.empty() ? "no estimation detail" : estimation.reason);
+        }
+        return true;
+    }
+
+    params.n_gpu_layers = override_layers;
+    if (logger) {
+        logger->info("Using Vulkan backend with explicit n_gpu_layers override={}",
+                     gpu_layers_to_string(override_layers));
+    }
+    return true;
 }
 
 void log_vulkan_estimation(const Utils::CudaMemoryInfo& memory,
@@ -1793,12 +1846,26 @@ bool finalize_vulkan_layers(const AutoGpuLayerEstimation& estimation,
                             const Utils::CudaMemoryInfo& memory,
                             llama_model_params& params,
                             const BackendMemoryInfo& original,
-                            const std::shared_ptr<spdlog::logger>& logger)
+                            const std::shared_ptr<spdlog::logger>& logger,
+                            std::optional<LocalLLMClient::Status>* preflight_status)
 {
     if (estimation.layers > 0) {
         params.n_gpu_layers = estimation.layers;
         log_vulkan_estimation(memory, original, estimation, params.n_gpu_layers, logger);
         return true;
+    }
+
+    if (estimation.insufficient_memory) {
+        params.n_gpu_layers = 0;
+        set_env_var("AI_FILE_SORTER_GPU_BACKEND", "cpu");
+        set_env_var("LLAMA_ARG_DEVICE", "cpu");
+        mark_preflight_low_memory(preflight_status);
+        if (logger) {
+            logger->warn(
+                "Available Vulkan memory is too low for this model ({}); using CPU backend.",
+                estimation.reason.empty() ? "no estimation detail" : estimation.reason);
+        }
+        return false;
     }
 
     params.n_gpu_layers = -1;
@@ -1812,7 +1879,8 @@ bool finalize_vulkan_layers(const AutoGpuLayerEstimation& estimation,
 
 bool apply_vulkan_backend(const std::string& model_path,
                           llama_model_params& params,
-                          const std::shared_ptr<spdlog::logger>& logger) {
+                          const std::shared_ptr<spdlog::logger>& logger,
+                          std::optional<LocalLLMClient::Status>* preflight_status = nullptr) {
     load_ggml_backends_once(logger);
     set_env_var("GGML_DISABLE_CUDA", "1");
 
@@ -1826,8 +1894,32 @@ bool apply_vulkan_backend(const std::string& model_path,
         return false;
     }
 
+    const int override_layers = resolve_gpu_layer_override();
     const auto vk_memory = resolve_backend_memory("vulkan");
-    if (apply_vulkan_override(params, resolve_gpu_layer_override(), logger)) {
+    if (override_layers != INT_MIN && override_layers <= 0) {
+        return apply_vulkan_override(model_path,
+                                     params,
+                                     override_layers,
+                                     BackendMemoryInfo{},
+                                     logger,
+                                     preflight_status);
+    }
+    if (override_layers != INT_MIN && vk_memory.has_value() &&
+        apply_vulkan_override(model_path,
+                              params,
+                              override_layers,
+                              *vk_memory,
+                              logger,
+                              preflight_status)) {
+        return true;
+    }
+    if (override_layers != INT_MIN && !vk_memory.has_value()) {
+        params.n_gpu_layers = override_layers;
+        if (logger) {
+            logger->info(
+                "Using Vulkan backend with explicit n_gpu_layers override={} without memory preflight (metrics unavailable).",
+                gpu_layers_to_string(override_layers));
+        }
         return true;
     }
 
@@ -1843,7 +1935,7 @@ bool apply_vulkan_backend(const std::string& model_path,
 
     Utils::CudaMemoryInfo adjusted = cap_integrated_gpu_memory(*vk_memory, logger);
     const auto estimation = estimate_gpu_layers_for_cuda(model_path, adjusted);
-    finalize_vulkan_layers(estimation, adjusted, params, *vk_memory, logger);
+    finalize_vulkan_layers(estimation, adjusted, params, *vk_memory, logger, preflight_status);
     return true;
 }
 
@@ -1856,13 +1948,14 @@ void select_vulkan_backend_environment()
 void apply_vulkan_fallback(const std::string& model_path,
                            llama_model_params& params,
                            const std::shared_ptr<spdlog::logger>& logger,
-                           const char* reason)
+                           const char* reason,
+                           std::optional<LocalLLMClient::Status>* preflight_status = nullptr)
 {
     if (logger && reason && *reason != '\0') {
         logger->info("{}", reason);
     }
     select_vulkan_backend_environment();
-    apply_vulkan_backend(model_path, params, logger);
+    apply_vulkan_backend(model_path, params, logger, preflight_status);
 }
 
 bool handle_cuda_forced_off(bool cuda_forced_off,
@@ -1906,8 +1999,10 @@ bool ensure_cuda_available(llama_model_params& params,
 }
 
 bool apply_ngl_override(int override_layers,
+                        const std::string& model_path,
                         llama_model_params& params,
-                        const std::shared_ptr<spdlog::logger>& logger)
+                        const std::shared_ptr<spdlog::logger>& logger,
+                        std::optional<LocalLLMClient::Status>* preflight_status)
 {
     if (override_layers == INT_MIN) {
         return false;
@@ -1919,6 +2014,22 @@ bool apply_ngl_override(int override_layers,
             logger,
             fmt::format("AI_FILE_SORTER_N_GPU_LAYERS={} forcing CPU fallback", override_layers));
         return true;
+    }
+
+    if (const auto cuda_info = Utils::query_cuda_memory()) {
+        const AutoGpuLayerEstimation estimation =
+            estimate_gpu_layers_for_cuda(model_path, *cuda_info);
+        if (override_exceeds_available_gpu_memory(override_layers, estimation)) {
+            disable_cuda_backend(
+                params,
+                logger,
+                fmt::format(
+                    "available CUDA memory is too low for explicit n_gpu_layers={} ({}); using CPU backend",
+                    override_layers,
+                    estimation.reason.empty() ? "no estimation detail" : estimation.reason));
+            mark_preflight_low_memory(preflight_status);
+            return true;
+        }
     }
 
     params.n_gpu_layers = override_layers;
@@ -1933,6 +2044,7 @@ bool apply_ngl_override(int override_layers,
 struct NglEstimationResult {
     int candidate_layers{0};
     int heuristic_layers{0};
+    bool low_memory{false};
 };
 
 NglEstimationResult estimate_ngl_from_cuda_info(const std::string& model_path,
@@ -1953,7 +2065,10 @@ NglEstimationResult estimate_ngl_from_cuda_info(const std::string& model_path,
     result.heuristic_layers = Utils::compute_ngl_from_cuda_memory(*cuda_info);
 
     int candidate_layers = estimation.layers > 0 ? estimation.layers : 0;
-    if (result.heuristic_layers > 0) {
+    if (estimation.insufficient_memory) {
+        result.low_memory = true;
+        candidate_layers = 0;
+    } else if (result.heuristic_layers > 0) {
         candidate_layers = std::max(candidate_layers, result.heuristic_layers);
     }
     result.candidate_layers = candidate_layers;
@@ -1993,19 +2108,20 @@ int fallback_ngl(int heuristic_layers, const std::shared_ptr<spdlog::logger>& lo
 
 bool configure_cuda_backend(const std::string& model_path,
                             llama_model_params& params,
-                            const std::shared_ptr<spdlog::logger>& logger) {
+                            const std::shared_ptr<spdlog::logger>& logger,
+                            std::optional<LocalLLMClient::Status>* preflight_status = nullptr) {
     if (!ensure_cuda_available(params, logger)) {
         return false;
     }
 
     const int override_layers = resolve_gpu_layer_override();
-    if (apply_ngl_override(override_layers, params, logger)) {
+    if (apply_ngl_override(override_layers, model_path, params, logger, preflight_status)) {
         return true;
     }
 
     const NglEstimationResult estimation = estimate_ngl_from_cuda_info(model_path, logger);
     int ngl = estimation.candidate_layers;
-    if (ngl <= 0) {
+    if (ngl <= 0 && !estimation.low_memory) {
         ngl = fallback_ngl(estimation.heuristic_layers, logger);
     }
 
@@ -2013,7 +2129,15 @@ bool configure_cuda_backend(const std::string& model_path,
         params.n_gpu_layers = ngl;
         std::cout << "ngl: " << params.n_gpu_layers << std::endl;
     } else {
-        disable_cuda_backend(params, logger, "CUDA not usable after estimation; falling back to CPU.");
+        disable_cuda_backend(
+            params,
+            logger,
+            estimation.low_memory
+                ? "available CUDA memory is too low for this model; falling back to CPU"
+                : "CUDA not usable after estimation; falling back to CPU.");
+        if (estimation.low_memory) {
+            mark_preflight_low_memory(preflight_status);
+        }
         std::cout << "CUDA not usable, falling back to CPU.\n";
     }
     return true;
@@ -2051,6 +2175,11 @@ bool llama_logs_enabled_from_env()
     });
     return value != "0" && value != "false" && value != "off" && value != "no";
 }
+
+struct ModelPreparationResult {
+    llama_model_params params;
+    std::optional<LocalLLMClient::Status> status;
+};
 
 
 LocalLLMClient::LocalLLMClient(const std::string& model_path,
@@ -2091,10 +2220,11 @@ void LocalLLMClient::configure_llama_logging(const std::shared_ptr<spdlog::logge
 }
 
 
-llama_model_params build_model_params_for_path(const std::string& model_path,
-                                               const std::shared_ptr<spdlog::logger>& logger) {
+ModelPreparationResult build_model_params_for_path(const std::string& model_path,
+                                                   const std::shared_ptr<spdlog::logger>& logger) {
     load_ggml_backends_once(logger);
-    llama_model_params model_params = llama_model_default_params();
+    ModelPreparationResult result;
+    result.params = llama_model_default_params();
 
 #ifdef GGML_USE_METAL
     const char* backend_env = std::getenv("AI_FILE_SORTER_GPU_BACKEND");
@@ -2107,60 +2237,66 @@ llama_model_params build_model_params_for_path(const std::string& model_path,
             if (logger) {
                 logger->info("AI_FILE_SORTER_GPU_BACKEND=cpu set; disabling Metal and using CPU backend.");
             }
-            model_params.n_gpu_layers = 0;
-            return model_params;
+            result.params.n_gpu_layers = 0;
+            return result;
         }
     }
 
     if (!metal_backend_available(logger)) {
-        model_params.n_gpu_layers = 0;
-        return model_params;
+        result.params.n_gpu_layers = 0;
+        return result;
     }
 
-    model_params.n_gpu_layers = determine_metal_layers(model_path, logger);
+    result.params.n_gpu_layers = determine_metal_layers(model_path, logger);
 #else
     const PreferredBackend backend_pref = detect_preferred_backend();
     const char* disable_env = std::getenv("GGML_DISABLE_CUDA");
     const bool cuda_forced_off = disable_env && disable_env[0] != '\0' && disable_env[0] != '0';
 
-    if (apply_cpu_backend(model_params, backend_pref, logger)) {
-        return model_params;
+    if (apply_cpu_backend(result.params, backend_pref, logger)) {
+        return result;
     }
 
     if (backend_pref == PreferredBackend::Vulkan) {
-        apply_vulkan_backend(model_path, model_params, logger);
-        return model_params;
+        apply_vulkan_backend(model_path, result.params, logger, &result.status);
+        return result;
     }
 
-    if (handle_cuda_forced_off(cuda_forced_off, backend_pref, model_params, logger)) {
+    if (handle_cuda_forced_off(cuda_forced_off, backend_pref, result.params, logger)) {
         if (backend_pref == PreferredBackend::Auto) {
             apply_vulkan_fallback(model_path,
-                                  model_params,
+                                  result.params,
                                   logger,
-                                  "CUDA auto-selection disabled via GGML_DISABLE_CUDA; attempting Vulkan fallback.");
+                                  "CUDA auto-selection disabled via GGML_DISABLE_CUDA; attempting Vulkan fallback.",
+                                  &result.status);
         }
-        return model_params;
+        return result;
     }
 
-    const bool cudaConfigured = configure_cuda_backend(model_path, model_params, logger);
+    const bool cudaConfigured = configure_cuda_backend(
+        model_path, result.params, logger, &result.status);
     if (cudaConfigured) {
-        return model_params;
+        return result;
     }
 
     const char* fallbackReason =
         (backend_pref == PreferredBackend::Cuda)
             ? "CUDA backend explicitly requested but unavailable; attempting Vulkan fallback."
             : "CUDA auto-selection unavailable; attempting Vulkan fallback.";
-    apply_vulkan_fallback(model_path, model_params, logger, fallbackReason);
-    return model_params;
+    apply_vulkan_fallback(model_path, result.params, logger, fallbackReason, &result.status);
+    return result;
 #endif
 
-    return model_params;
+    return result;
 }
 
 llama_model_params LocalLLMClient::prepare_model_params(const std::shared_ptr<spdlog::logger>& logger)
 {
-    return build_model_params_for_path(model_path, logger);
+    ModelPreparationResult preparation = build_model_params_for_path(model_path, logger);
+    if (preparation.status.has_value()) {
+        notify_status(*preparation.status);
+    }
+    return preparation.params;
 }
 
 #if defined(AI_FILE_SORTER_TEST_BUILD) && !defined(GGML_USE_METAL)
@@ -2214,8 +2350,13 @@ bool configure_cuda_backend(const std::string& model_path, llama_model_params& p
     return ::configure_cuda_backend(model_path, params, nullptr);
 }
 
+PreparedModelParamsResult prepare_model_params_result_for_testing(const std::string& model_path) {
+    const ModelPreparationResult preparation = ::build_model_params_for_path(model_path, nullptr);
+    return {preparation.params, preparation.status};
+}
+
 llama_model_params prepare_model_params_for_testing(const std::string& model_path) {
-    return ::build_model_params_for_path(model_path, nullptr);
+    return prepare_model_params_result_for_testing(model_path).params;
 }
 
 } // namespace LocalLLMTestAccess
@@ -2628,6 +2769,15 @@ void LocalLLMClient::set_prompt_logging_enabled(bool enabled)
 void LocalLLMClient::set_status_callback(StatusCallback callback)
 {
     status_callback_ = std::move(callback);
+    if (!status_callback_ || pending_statuses_.empty()) {
+        return;
+    }
+
+    std::vector<Status> pending;
+    pending.swap(pending_statuses_);
+    for (const Status status : pending) {
+        status_callback_(status);
+    }
 }
 
 void LocalLLMClient::set_fallback_decision_callback(FallbackDecisionCallback callback)
@@ -2635,9 +2785,11 @@ void LocalLLMClient::set_fallback_decision_callback(FallbackDecisionCallback cal
     fallback_decision_callback_ = std::move(callback);
 }
 
-void LocalLLMClient::notify_status(Status status) const
+void LocalLLMClient::notify_status(Status status)
 {
     if (status_callback_) {
         status_callback_(status);
+    } else {
+        pending_statuses_.push_back(status);
     }
 }

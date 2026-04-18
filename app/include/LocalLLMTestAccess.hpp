@@ -2,8 +2,10 @@
 
 #ifdef AI_FILE_SORTER_TEST_BUILD
 
+#include "LocalLLMClient.hpp"
 #include "Types.hpp"
 
+#include <optional>
 #include <string>
 #include "llama.h"
 
@@ -25,6 +27,19 @@ bool handle_cuda_forced_off(bool cuda_forced_off,
                             llama_model_params& params);
 bool configure_cuda_backend(const std::string& model_path,
                             llama_model_params& params);
+/**
+ * @brief Prepared model parameters plus any pre-load status emitted during backend selection.
+ */
+struct PreparedModelParamsResult {
+    llama_model_params params;
+    std::optional<LocalLLMClient::Status> status;
+};
+/**
+ * @brief Builds model parameters and captures preflight backend status for tests.
+ * @param model_path Path to the GGUF model used for backend preparation.
+ * @return Prepared parameters together with any emitted status.
+ */
+PreparedModelParamsResult prepare_model_params_result_for_testing(const std::string& model_path);
 llama_model_params prepare_model_params_for_testing(const std::string& model_path);
 std::string categorization_system_prompt_for_testing(const std::string& file_path,
                                                      FileType file_type);

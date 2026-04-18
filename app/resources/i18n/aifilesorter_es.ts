@@ -1097,6 +1097,11 @@ Abre este enlace manualmente:
             <translation>[WARN] Se rechazó el cambio de GPU a CPU. Cancelando análisis.</translation>
         </message>
         <message>
+            <location filename="../../lib/MainApp.cpp" line="1985" />
+            <source>[WARN] Available GPU memory is too low for GPU acceleration. Continuing on CPU (slower).</source>
+            <translation>[ADVERTENCIA] La memoria GPU disponible es insuficiente para la aceleración GPU. Continuando en CPU (más lento).</translation>
+        </message>
+        <message>
             <location filename="../../lib/MainApp.cpp" line="4024" />
             <location filename="../../lib/MainApp.cpp" line="4056" />
             <source>[WARN] GPU acceleration failed to initialize. Continuing on CPU (slower).</source>

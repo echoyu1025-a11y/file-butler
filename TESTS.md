@@ -40,6 +40,13 @@ Procedure: Call `prepare_model_params_for_testing()`.
 Expected outcome: `n_gpu_layers` equals `7`.
 Run: `./build-tests/ai_file_sorter_tests "CUDA override is applied when backend is available"`
 
+#### Test case: CUDA backend reports low GPU memory before load
+Purpose: Ensure CUDA preflight checks fall back to CPU before model load when available VRAM is too low.
+Setup: Set `AI_FILE_SORTER_GPU_BACKEND=cuda`, leave the layer override unset, inject a CUDA-available probe, and inject a CUDA memory probe with extremely low free memory.
+Procedure: Call `prepare_model_params_result_for_testing()` for a temporary model with enough layers to exceed the reported budget.
+Expected outcome: `n_gpu_layers` is `0` and the captured status is `GpuLowMemoryFallbackToCpu`.
+Run: `./build-tests/ai_file_sorter_tests "CUDA backend reports low GPU memory before load"`
+
 #### Test case: Auto backend prefers CUDA when both backends are possible
 Purpose: Verify that automatic backend selection uses CUDA before Vulkan.
 Setup: Leave `AI_FILE_SORTER_GPU_BACKEND` unset, clear `GGML_DISABLE_CUDA`, set `AI_FILE_SORTER_N_GPU_LAYERS=7`, inject a CUDA-available probe, and inject a Vulkan probe that reports unavailable.
@@ -74,6 +81,13 @@ Setup: Use a model with 48 blocks, set `AI_FILE_SORTER_GPU_BACKEND=vulkan`, and 
 Procedure: Call `prepare_model_params_for_testing()`.
 Expected outcome: `n_gpu_layers` is greater than `0` and less than or equal to `48`.
 Run: `./build-tests/ai_file_sorter_tests "Vulkan backend derives layer count from memory probe"`
+
+#### Test case: Vulkan backend reports low GPU memory before load
+Purpose: Ensure Vulkan preflight checks fall back to CPU before model load when available VRAM is too low.
+Setup: Set `AI_FILE_SORTER_GPU_BACKEND=vulkan`, leave the layer override unset, inject a Vulkan-available probe, and inject backend memory with extremely low free memory.
+Procedure: Call `prepare_model_params_result_for_testing()` for a temporary model with enough layers to exceed the reported budget.
+Expected outcome: `n_gpu_layers` is `0` and the captured status is `GpuLowMemoryFallbackToCpu`.
+Run: `./build-tests/ai_file_sorter_tests "Vulkan backend reports low GPU memory before load"`
 
 ### `tests/unit/test_single_instance_coordinator.cpp`
 

@@ -1992,6 +1992,19 @@ void MainApp::apply_development_logging()
 std::unique_ptr<ILLMClient> MainApp::make_llm_client()
 {
     const LLMChoice choice = settings.get_llm_choice();
+    const auto handle_local_llm_status = [this](LocalLLMClient::Status status) {
+        schedule_backend_status_label_refresh();
+        switch (status) {
+            case LocalLLMClient::Status::GpuLowMemoryFallbackToCpu:
+                report_progress(to_utf8(
+                    tr("[WARN] Available GPU memory is too low for GPU acceleration. Continuing on CPU (slower).")));
+                return;
+            case LocalLLMClient::Status::GpuFallbackToCpu:
+                report_progress(to_utf8(
+                    tr("[WARN] GPU acceleration failed to initialize. Continuing on CPU (slower).")));
+                return;
+        }
+    };
 
     if (choice == LLMChoice::Remote_OpenAI) {
         const std::string api_key = settings.get_openai_api_key();
@@ -2039,11 +2052,8 @@ std::unique_ptr<ILLMClient> MainApp::make_llm_client()
         auto client = std::make_unique<LocalLLMClient>(
             custom.path,
             [this](const std::string& reason) { return prompt_text_cpu_fallback(reason); });
-        client->set_status_callback([this](LocalLLMClient::Status status) {
-            if (status == LocalLLMClient::Status::GpuFallbackToCpu) {
-                schedule_backend_status_label_refresh();
-                report_progress(to_utf8(tr("[WARN] GPU acceleration failed to initialize. Continuing on CPU (slower).")));
-            }
+        client->set_status_callback([handle_local_llm_status](LocalLLMClient::Status status) {
+            handle_local_llm_status(status);
         });
         client->set_prompt_logging_enabled(should_log_prompts());
         schedule_backend_status_label_refresh();
@@ -2073,11 +2083,8 @@ std::unique_ptr<ILLMClient> MainApp::make_llm_client()
     auto client = std::make_unique<LocalLLMClient>(
         Utils::make_default_path_to_file_from_download_url(env_url),
         [this](const std::string& reason) { return prompt_text_cpu_fallback(reason); });
-    client->set_status_callback([this](LocalLLMClient::Status status) {
-        if (status == LocalLLMClient::Status::GpuFallbackToCpu) {
-            schedule_backend_status_label_refresh();
-            report_progress(to_utf8(tr("[WARN] GPU acceleration failed to initialize. Continuing on CPU (slower).")));
-        }
+    client->set_status_callback([handle_local_llm_status](LocalLLMClient::Status status) {
+        handle_local_llm_status(status);
     });
     client->set_prompt_logging_enabled(should_log_prompts());
     schedule_backend_status_label_refresh();

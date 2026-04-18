@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace spdlog { class logger; }
 
@@ -15,6 +16,10 @@ public:
      * @brief Status events emitted by the local LLM client.
      */
     enum class Status {
+        /**
+         * @brief Available GPU memory is too low; the client fell back to CPU before loading.
+         */
+        GpuLowMemoryFallbackToCpu,
         /**
          * @brief GPU backend initialization failed; the client fell back to CPU.
          */
@@ -73,7 +78,7 @@ private:
      * @brief Emits a status event to the registered callback.
      * @param status Status event to emit.
      */
-    void notify_status(Status status) const;
+    void notify_status(Status status);
 
     std::string model_path;
     llama_model* model;
@@ -85,4 +90,5 @@ private:
     bool prompt_logging_enabled{false};
     StatusCallback status_callback_;
     FallbackDecisionCallback fallback_decision_callback_;
+    std::vector<Status> pending_statuses_;
 };

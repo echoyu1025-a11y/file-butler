@@ -1097,6 +1097,11 @@ Please open this link manually:
             <translation>[WARN] GPU에서 CPU로의 전환이 거부되었습니다. 분석을 취소합니다.</translation>
         </message>
         <message>
+            <location filename="../../lib/MainApp.cpp" line="1985" />
+            <source>[WARN] Available GPU memory is too low for GPU acceleration. Continuing on CPU (slower).</source>
+            <translation>[경고] 사용 가능한 GPU 메모리가 GPU 가속을 사용하기에 부족합니다. CPU에서 계속합니다(더 느림).</translation>
+        </message>
+        <message>
             <location filename="../../lib/MainApp.cpp" line="4024" />
             <location filename="../../lib/MainApp.cpp" line="4056" />
             <source>[WARN] GPU acceleration failed to initialize. Continuing on CPU (slower).</source>

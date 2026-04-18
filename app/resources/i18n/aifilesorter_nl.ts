@@ -1097,6 +1097,11 @@ Open deze link handmatig:
             <translation>[WARN] Terugval van GPU naar CPU geweigerd. Analyse wordt geannuleerd.</translation>
         </message>
         <message>
+            <location filename="../../lib/MainApp.cpp" line="1985" />
+            <source>[WARN] Available GPU memory is too low for GPU acceleration. Continuing on CPU (slower).</source>
+            <translation>[WAARSCHUWING] Beschikbaar GPU-geheugen is onvoldoende voor GPU-versnelling. Verdergaan op CPU (langzamer).</translation>
+        </message>
+        <message>
             <location filename="../../lib/MainApp.cpp" line="4024" />
             <location filename="../../lib/MainApp.cpp" line="4056" />
             <source>[WARN] GPU acceleration failed to initialize. Continuing on CPU (slower).</source>

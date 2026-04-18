@@ -1015,8 +1015,11 @@ TextModelOutcome run_text_model_checks(const std::vector<DefaultModel>& models,
             std::vector<StepResult> doc_runs;
             bool status_fallback = false;
             client.set_status_callback([&status_fallback](LocalLLMClient::Status status) {
-                if (status == LocalLLMClient::Status::GpuFallbackToCpu) {
-                    status_fallback = true;
+                switch (status) {
+                    case LocalLLMClient::Status::GpuLowMemoryFallbackToCpu:
+                    case LocalLLMClient::Status::GpuFallbackToCpu:
+                        status_fallback = true;
+                        break;
                 }
             });
 

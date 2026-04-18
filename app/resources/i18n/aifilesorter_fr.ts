@@ -1097,6 +1097,11 @@ Veuillez ouvrir ce lien manuellement :
             <translation>[WARN] Repli du GPU vers le CPU refusé. Annulation de l'analyse.</translation>
         </message>
         <message>
+            <location filename="../../lib/MainApp.cpp" line="1985" />
+            <source>[WARN] Available GPU memory is too low for GPU acceleration. Continuing on CPU (slower).</source>
+            <translation>[AVERTISSEMENT] La mémoire GPU disponible est insuffisante pour l'accélération GPU. Poursuite sur CPU (plus lent).</translation>
+        </message>
+        <message>
             <location filename="../../lib/MainApp.cpp" line="4024" />
             <location filename="../../lib/MainApp.cpp" line="4056" />
             <source>[WARN] GPU acceleration failed to initialize. Continuing on CPU (slower).</source>
