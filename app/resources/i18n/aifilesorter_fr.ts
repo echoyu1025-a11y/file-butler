@@ -2216,99 +2216,99 @@ Cette action est irréversible.</translation>
         <name>StoragePluginDialog</name>
         <message>
             <source>Manage Storage Plugins</source>
-            <translation type="unfinished"></translation>
+            <translation>Gérer les plugins de stockage</translation>
         </message>
         <message>
             <source>Install optional storage plugins to enable compatibility support for cloud-backed folders.</source>
-            <translation type="unfinished"></translation>
+            <translation>Installez des plugins de stockage facultatifs pour activer la compatibilité avec les dossiers stockés dans le cloud.</translation>
         </message>
         <message>
             <source>Plugin</source>
-            <translation type="unfinished"></translation>
+            <translation>Plugin</translation>
         </message>
         <message>
             <source>Action</source>
-            <translation type="unfinished"></translation>
+            <translation>Action</translation>
         </message>
         <message>
             <source>Check for updates</source>
-            <translation type="unfinished"></translation>
+            <translation>Rechercher des mises à jour</translation>
         </message>
         <message>
             <source>Install from File…</source>
-            <translation type="unfinished"></translation>
+            <translation>Installer depuis un fichier…</translation>
         </message>
         <message>
             <source>Install</source>
-            <translation type="unfinished"></translation>
+            <translation>Installer</translation>
         </message>
         <message>
             <source>Uninstall</source>
-            <translation type="unfinished"></translation>
+            <translation>Désinstaller</translation>
         </message>
         <message>
             <source> (Installed)</source>
-            <translation type="unfinished"></translation>
+            <translation> (installé)</translation>
         </message>
         <message>
             <source>Update</source>
-            <translation type="unfinished"></translation>
+            <translation>Mettre à jour</translation>
         </message>
         <message>
             <source>Unknown plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>Plugin inconnu.</translation>
         </message>
         <message>
             <source>This plugin entry point is not supported by this version of the app.</source>
-            <translation type="unfinished"></translation>
+            <translation>Le point d&apos;entrée de ce plugin n&apos;est pas pris en charge par cette version de l&apos;application.</translation>
         </message>
         <message>
             <source>A newer or refreshed package can be installed from the configured plugin source.</source>
-            <translation type="unfinished"></translation>
+            <translation>Un paquet plus récent ou actualisé peut être installé depuis la source de plugins configurée.</translation>
         </message>
         <message>
             <source>Update check failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Échec de la recherche de mises à jour</translation>
         </message>
         <message>
             <source>Failed to check for storage plugin updates.</source>
-            <translation type="unfinished"></translation>
+            <translation>Échec de la recherche de mises à jour des plugins de stockage.</translation>
         </message>
         <message>
             <source>Install Storage Plugin</source>
-            <translation type="unfinished"></translation>
+            <translation>Installer un plugin de stockage</translation>
         </message>
         <message>
             <source>AI File Sorter plugins (*.aifsplugin *.zip);;All files (*)</source>
-            <translation type="unfinished"></translation>
+            <translation>Plugins AI File Sorter (*.aifsplugin *.zip);;Tous les fichiers (*)</translation>
         </message>
         <message>
             <source>Install failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Échec de l&apos;installation</translation>
         </message>
         <message>
             <source>Failed to install plugin archive.</source>
-            <translation type="unfinished"></translation>
+            <translation>Échec de l&apos;installation de l&apos;archive du plugin.</translation>
         </message>
         <message>
             <source>Failed to install plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>Échec de l&apos;installation du plugin.</translation>
         </message>
         <message>
             <source>Update failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Échec de la mise à jour</translation>
         </message>
         <message>
             <source>Failed to update plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>Échec de la mise à jour du plugin.</translation>
         </message>
         <message>
             <source>Uninstall failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Échec de la désinstallation</translation>
         </message>
         <message>
             <source>Failed to uninstall plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>Échec de la désinstallation du plugin.</translation>
         </message>
     </context>
 </TS>

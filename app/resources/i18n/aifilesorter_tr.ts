@@ -2216,99 +2216,99 @@ Bu işlem geri alınamaz.</translation>
         <name>StoragePluginDialog</name>
         <message>
             <source>Manage Storage Plugins</source>
-            <translation type="unfinished"></translation>
+            <translation>Depolama Eklentilerini Yönet</translation>
         </message>
         <message>
             <source>Install optional storage plugins to enable compatibility support for cloud-backed folders.</source>
-            <translation type="unfinished"></translation>
+            <translation>Bulut destekli klasörler için uyumluluk desteğini etkinleştirmek üzere isteğe bağlı depolama eklentileri yükleyin.</translation>
         </message>
         <message>
             <source>Plugin</source>
-            <translation type="unfinished"></translation>
+            <translation>Eklenti</translation>
         </message>
         <message>
             <source>Action</source>
-            <translation type="unfinished"></translation>
+            <translation>Eylem</translation>
         </message>
         <message>
             <source>Check for updates</source>
-            <translation type="unfinished"></translation>
+            <translation>Güncellemeleri denetle</translation>
         </message>
         <message>
             <source>Install from File…</source>
-            <translation type="unfinished"></translation>
+            <translation>Dosyadan yükle…</translation>
         </message>
         <message>
             <source>Install</source>
-            <translation type="unfinished"></translation>
+            <translation>Yükle</translation>
         </message>
         <message>
             <source>Uninstall</source>
-            <translation type="unfinished"></translation>
+            <translation>Kaldır</translation>
         </message>
         <message>
             <source> (Installed)</source>
-            <translation type="unfinished"></translation>
+            <translation> (Yüklü)</translation>
         </message>
         <message>
             <source>Update</source>
-            <translation type="unfinished"></translation>
+            <translation>Güncelle</translation>
         </message>
         <message>
             <source>Unknown plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>Bilinmeyen eklenti.</translation>
         </message>
         <message>
             <source>This plugin entry point is not supported by this version of the app.</source>
-            <translation type="unfinished"></translation>
+            <translation>Bu eklenti giriş noktası, uygulamanın bu sürümü tarafından desteklenmiyor.</translation>
         </message>
         <message>
             <source>A newer or refreshed package can be installed from the configured plugin source.</source>
-            <translation type="unfinished"></translation>
+            <translation>Yapılandırılmış eklenti kaynağından daha yeni veya yenilenmiş bir paket yüklenebilir.</translation>
         </message>
         <message>
             <source>Update check failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Güncelleme denetimi başarısız oldu</translation>
         </message>
         <message>
             <source>Failed to check for storage plugin updates.</source>
-            <translation type="unfinished"></translation>
+            <translation>Depolama eklentisi güncellemeleri denetlenemedi.</translation>
         </message>
         <message>
             <source>Install Storage Plugin</source>
-            <translation type="unfinished"></translation>
+            <translation>Depolama Eklentisi Yükle</translation>
         </message>
         <message>
             <source>AI File Sorter plugins (*.aifsplugin *.zip);;All files (*)</source>
-            <translation type="unfinished"></translation>
+            <translation>AI File Sorter eklentileri (*.aifsplugin *.zip);;Tüm dosyalar (*)</translation>
         </message>
         <message>
             <source>Install failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Yükleme başarısız oldu</translation>
         </message>
         <message>
             <source>Failed to install plugin archive.</source>
-            <translation type="unfinished"></translation>
+            <translation>Eklenti arşivi yüklenemedi.</translation>
         </message>
         <message>
             <source>Failed to install plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>Eklenti yüklenemedi.</translation>
         </message>
         <message>
             <source>Update failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Güncelleme başarısız oldu</translation>
         </message>
         <message>
             <source>Failed to update plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>Eklenti güncellenemedi.</translation>
         </message>
         <message>
             <source>Uninstall failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Kaldırma başarısız oldu</translation>
         </message>
         <message>
             <source>Failed to uninstall plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>Eklenti kaldırılamadı.</translation>
         </message>
     </context>
 </TS>

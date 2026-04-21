@@ -2216,99 +2216,99 @@ Questa operazione non può essere annullata.</translation>
         <name>StoragePluginDialog</name>
         <message>
             <source>Manage Storage Plugins</source>
-            <translation type="unfinished"></translation>
+            <translation>Gestisci plugin di archiviazione</translation>
         </message>
         <message>
             <source>Install optional storage plugins to enable compatibility support for cloud-backed folders.</source>
-            <translation type="unfinished"></translation>
+            <translation>Installa plugin di archiviazione opzionali per abilitare il supporto di compatibilità per le cartelle basate sul cloud.</translation>
         </message>
         <message>
             <source>Plugin</source>
-            <translation type="unfinished"></translation>
+            <translation>Plugin</translation>
         </message>
         <message>
             <source>Action</source>
-            <translation type="unfinished"></translation>
+            <translation>Azione</translation>
         </message>
         <message>
             <source>Check for updates</source>
-            <translation type="unfinished"></translation>
+            <translation>Controlla aggiornamenti</translation>
         </message>
         <message>
             <source>Install from File…</source>
-            <translation type="unfinished"></translation>
+            <translation>Installa da file…</translation>
         </message>
         <message>
             <source>Install</source>
-            <translation type="unfinished"></translation>
+            <translation>Installa</translation>
         </message>
         <message>
             <source>Uninstall</source>
-            <translation type="unfinished"></translation>
+            <translation>Disinstalla</translation>
         </message>
         <message>
             <source> (Installed)</source>
-            <translation type="unfinished"></translation>
+            <translation> (Installato)</translation>
         </message>
         <message>
             <source>Update</source>
-            <translation type="unfinished"></translation>
+            <translation>Aggiorna</translation>
         </message>
         <message>
             <source>Unknown plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>Plugin sconosciuto.</translation>
         </message>
         <message>
             <source>This plugin entry point is not supported by this version of the app.</source>
-            <translation type="unfinished"></translation>
+            <translation>Il punto di ingresso di questo plugin non è supportato da questa versione dell&apos;app.</translation>
         </message>
         <message>
             <source>A newer or refreshed package can be installed from the configured plugin source.</source>
-            <translation type="unfinished"></translation>
+            <translation>È possibile installare un pacchetto più recente o aggiornato dalla sorgente plugin configurata.</translation>
         </message>
         <message>
             <source>Update check failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Controllo aggiornamenti non riuscito</translation>
         </message>
         <message>
             <source>Failed to check for storage plugin updates.</source>
-            <translation type="unfinished"></translation>
+            <translation>Impossibile controllare gli aggiornamenti dei plugin di archiviazione.</translation>
         </message>
         <message>
             <source>Install Storage Plugin</source>
-            <translation type="unfinished"></translation>
+            <translation>Installa plugin di archiviazione</translation>
         </message>
         <message>
             <source>AI File Sorter plugins (*.aifsplugin *.zip);;All files (*)</source>
-            <translation type="unfinished"></translation>
+            <translation>Plugin di AI File Sorter (*.aifsplugin *.zip);;Tutti i file (*)</translation>
         </message>
         <message>
             <source>Install failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Installazione non riuscita</translation>
         </message>
         <message>
             <source>Failed to install plugin archive.</source>
-            <translation type="unfinished"></translation>
+            <translation>Impossibile installare l&apos;archivio del plugin.</translation>
         </message>
         <message>
             <source>Failed to install plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>Impossibile installare il plugin.</translation>
         </message>
         <message>
             <source>Update failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Aggiornamento non riuscito</translation>
         </message>
         <message>
             <source>Failed to update plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>Impossibile aggiornare il plugin.</translation>
         </message>
         <message>
             <source>Uninstall failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Disinstallazione non riuscita</translation>
         </message>
         <message>
             <source>Failed to uninstall plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>Impossibile disinstallare il plugin.</translation>
         </message>
     </context>
 </TS>

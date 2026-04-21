@@ -2075,6 +2075,16 @@ Versucht:
             <translation>&amp;Hilfe</translation>
         </message>
         <message>
+            <location filename="../../lib/UiTranslator.cpp" line="260" />
+            <source>&amp;Quick Start Guide</source>
+            <translation>&amp;Schnellstartanleitung</translation>
+        </message>
+        <message>
+            <location filename="../../lib/UiTranslator.cpp" line="261" />
+            <source>&amp;FAQ</source>
+            <translation>&amp;FAQ</translation>
+        </message>
+        <message>
             <location filename="../../lib/UiTranslator.cpp" line="276" />
             <source>File Explorer</source>
             <translation>Datei-Explorer</translation>
@@ -2216,99 +2226,99 @@ Dies kann nicht rückgängig gemacht werden.</translation>
         <name>StoragePluginDialog</name>
         <message>
             <source>Manage Storage Plugins</source>
-            <translation type="unfinished"></translation>
+            <translation>Speicher-Plugins verwalten</translation>
         </message>
         <message>
             <source>Install optional storage plugins to enable compatibility support for cloud-backed folders.</source>
-            <translation type="unfinished"></translation>
+            <translation>Installieren Sie optionale Speicher-Plugins, um Kompatibilitätsunterstützung für cloudbasierte Ordner zu aktivieren.</translation>
         </message>
         <message>
             <source>Plugin</source>
-            <translation type="unfinished"></translation>
+            <translation>Plugin</translation>
         </message>
         <message>
             <source>Action</source>
-            <translation type="unfinished"></translation>
+            <translation>Aktion</translation>
         </message>
         <message>
             <source>Check for updates</source>
-            <translation type="unfinished"></translation>
+            <translation>Nach Updates suchen</translation>
         </message>
         <message>
             <source>Install from File…</source>
-            <translation type="unfinished"></translation>
+            <translation>Aus Datei installieren…</translation>
         </message>
         <message>
             <source>Install</source>
-            <translation type="unfinished"></translation>
+            <translation>Installieren</translation>
         </message>
         <message>
             <source>Uninstall</source>
-            <translation type="unfinished"></translation>
+            <translation>Deinstallieren</translation>
         </message>
         <message>
             <source> (Installed)</source>
-            <translation type="unfinished"></translation>
+            <translation> (Installiert)</translation>
         </message>
         <message>
             <source>Update</source>
-            <translation type="unfinished"></translation>
+            <translation>Aktualisieren</translation>
         </message>
         <message>
             <source>Unknown plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>Unbekanntes Plugin.</translation>
         </message>
         <message>
             <source>This plugin entry point is not supported by this version of the app.</source>
-            <translation type="unfinished"></translation>
+            <translation>Dieser Plugin-Einstiegspunkt wird von dieser App-Version nicht unterstützt.</translation>
         </message>
         <message>
             <source>A newer or refreshed package can be installed from the configured plugin source.</source>
-            <translation type="unfinished"></translation>
+            <translation>Ein neueres oder aktualisiertes Paket kann aus der konfigurierten Plugin-Quelle installiert werden.</translation>
         </message>
         <message>
             <source>Update check failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Update-Prüfung fehlgeschlagen</translation>
         </message>
         <message>
             <source>Failed to check for storage plugin updates.</source>
-            <translation type="unfinished"></translation>
+            <translation>Die Suche nach Speicher-Plugin-Updates ist fehlgeschlagen.</translation>
         </message>
         <message>
             <source>Install Storage Plugin</source>
-            <translation type="unfinished"></translation>
+            <translation>Speicher-Plugin installieren</translation>
         </message>
         <message>
             <source>AI File Sorter plugins (*.aifsplugin *.zip);;All files (*)</source>
-            <translation type="unfinished"></translation>
+            <translation>AI File Sorter-Plugins (*.aifsplugin *.zip);;Alle Dateien (*)</translation>
         </message>
         <message>
             <source>Install failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Installation fehlgeschlagen</translation>
         </message>
         <message>
             <source>Failed to install plugin archive.</source>
-            <translation type="unfinished"></translation>
+            <translation>Plugin-Archiv konnte nicht installiert werden.</translation>
         </message>
         <message>
             <source>Failed to install plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>Plugin konnte nicht installiert werden.</translation>
         </message>
         <message>
             <source>Update failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Aktualisierung fehlgeschlagen</translation>
         </message>
         <message>
             <source>Failed to update plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>Plugin konnte nicht aktualisiert werden.</translation>
         </message>
         <message>
             <source>Uninstall failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Deinstallation fehlgeschlagen</translation>
         </message>
         <message>
             <source>Failed to uninstall plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>Plugin konnte nicht deinstalliert werden.</translation>
         </message>
     </context>
 </TS>

@@ -2216,99 +2216,99 @@ Esta acción no se puede deshacer.</translation>
         <name>StoragePluginDialog</name>
         <message>
             <source>Manage Storage Plugins</source>
-            <translation type="unfinished"></translation>
+            <translation>Gestionar plugins de almacenamiento</translation>
         </message>
         <message>
             <source>Install optional storage plugins to enable compatibility support for cloud-backed folders.</source>
-            <translation type="unfinished"></translation>
+            <translation>Instala plugins de almacenamiento opcionales para habilitar la compatibilidad con carpetas basadas en la nube.</translation>
         </message>
         <message>
             <source>Plugin</source>
-            <translation type="unfinished"></translation>
+            <translation>Plugin</translation>
         </message>
         <message>
             <source>Action</source>
-            <translation type="unfinished"></translation>
+            <translation>Acción</translation>
         </message>
         <message>
             <source>Check for updates</source>
-            <translation type="unfinished"></translation>
+            <translation>Buscar actualizaciones</translation>
         </message>
         <message>
             <source>Install from File…</source>
-            <translation type="unfinished"></translation>
+            <translation>Instalar desde archivo…</translation>
         </message>
         <message>
             <source>Install</source>
-            <translation type="unfinished"></translation>
+            <translation>Instalar</translation>
         </message>
         <message>
             <source>Uninstall</source>
-            <translation type="unfinished"></translation>
+            <translation>Desinstalar</translation>
         </message>
         <message>
             <source> (Installed)</source>
-            <translation type="unfinished"></translation>
+            <translation> (Instalado)</translation>
         </message>
         <message>
             <source>Update</source>
-            <translation type="unfinished"></translation>
+            <translation>Actualizar</translation>
         </message>
         <message>
             <source>Unknown plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>Plugin desconocido.</translation>
         </message>
         <message>
             <source>This plugin entry point is not supported by this version of the app.</source>
-            <translation type="unfinished"></translation>
+            <translation>Este punto de entrada del plugin no es compatible con esta versión de la app.</translation>
         </message>
         <message>
             <source>A newer or refreshed package can be installed from the configured plugin source.</source>
-            <translation type="unfinished"></translation>
+            <translation>Se puede instalar un paquete más reciente o actualizado desde la fuente de plugins configurada.</translation>
         </message>
         <message>
             <source>Update check failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Error al buscar actualizaciones</translation>
         </message>
         <message>
             <source>Failed to check for storage plugin updates.</source>
-            <translation type="unfinished"></translation>
+            <translation>No se pudieron buscar actualizaciones de plugins de almacenamiento.</translation>
         </message>
         <message>
             <source>Install Storage Plugin</source>
-            <translation type="unfinished"></translation>
+            <translation>Instalar plugin de almacenamiento</translation>
         </message>
         <message>
             <source>AI File Sorter plugins (*.aifsplugin *.zip);;All files (*)</source>
-            <translation type="unfinished"></translation>
+            <translation>Plugins de AI File Sorter (*.aifsplugin *.zip);;Todos los archivos (*)</translation>
         </message>
         <message>
             <source>Install failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Error de instalación</translation>
         </message>
         <message>
             <source>Failed to install plugin archive.</source>
-            <translation type="unfinished"></translation>
+            <translation>No se pudo instalar el archivo del plugin.</translation>
         </message>
         <message>
             <source>Failed to install plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>No se pudo instalar el plugin.</translation>
         </message>
         <message>
             <source>Update failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Error de actualización</translation>
         </message>
         <message>
             <source>Failed to update plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>No se pudo actualizar el plugin.</translation>
         </message>
         <message>
             <source>Uninstall failed</source>
-            <translation type="unfinished"></translation>
+            <translation>Error de desinstalación</translation>
         </message>
         <message>
             <source>Failed to uninstall plugin.</source>
-            <translation type="unfinished"></translation>
+            <translation>No se pudo desinstalar el plugin.</translation>
         </message>
     </context>
 </TS>
