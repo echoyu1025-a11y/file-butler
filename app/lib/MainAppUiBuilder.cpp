@@ -595,6 +595,8 @@ UiTranslator::Dependencies MainAppUiBuilder::build_translator_dependencies(MainA
             app.category_language_spanish,
             app.category_language_turkish,
             app.about_action,
+            app.quick_start_action,
+            app.faq_action,
             app.about_qt_action,
             app.about_agpl_action,
             app.support_project_action},
@@ -828,6 +830,18 @@ void MainAppUiBuilder::build_help_menu(MainApp& app) {
     app.about_action = app.help_menu->addAction(icon_for(app, "help-about", QStyle::SP_MessageBoxInformation), QString());
     app.about_action->setMenuRole(QAction::NoRole);
     QObject::connect(app.about_action, &QAction::triggered, &app, &MainApp::on_about_activate);
+
+    app.quick_start_action = app.help_menu->addAction(icon_for(app, "help-contents", QStyle::SP_DialogHelpButton), QString());
+    app.quick_start_action->setMenuRole(QAction::NoRole);
+    QObject::connect(app.quick_start_action, &QAction::triggered, &app, [&app]() {
+        MainAppHelpActions::show_quick_start(&app);
+    });
+
+    app.faq_action = app.help_menu->addAction(icon_for(app, "help-faq", QStyle::SP_DialogHelpButton), QString());
+    app.faq_action->setMenuRole(QAction::NoRole);
+    QObject::connect(app.faq_action, &QAction::triggered, &app, []() {
+        MainAppHelpActions::open_faq_page();
+    });
 
     app.about_qt_action = app.help_menu->addAction(icon_for(app, "help-about", QStyle::SP_MessageBoxInformation), QString());
     app.about_qt_action->setMenuRole(QAction::NoRole);

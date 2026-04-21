@@ -103,6 +103,8 @@ struct UiTranslatorTestHarness {
     QAction* category_language_spanish = new QAction(&window);
     QAction* category_language_turkish = new QAction(&window);
     QAction* about_action = new QAction(&window);
+    QAction* quick_start_action = new QAction(&window);
+    QAction* faq_action = new QAction(&window);
     QAction* about_qt_action = new QAction(&window);
     QAction* about_agpl_action = new QAction(&window);
     QAction* support_project_action = new QAction(&window);
@@ -240,6 +242,8 @@ struct UiTranslatorTestHarness {
                 category_language_spanish,
                 category_language_turkish,
                 about_action,
+                quick_start_action,
+                faq_action,
                 about_qt_action,
                 about_agpl_action,
                 support_project_action},
@@ -316,6 +320,8 @@ void verify_menus_and_actions(const UiTranslatorTestHarness& h)
     REQUIRE(h.manage_storage_plugins_action->text() == QStringLiteral("Manage storage plugins…"));
     REQUIRE(h.manage_whitelists_action->text() == QStringLiteral("Manage category whitelists…"));
     REQUIRE(h.clear_cache_action->text() == QStringLiteral("Clear cache…"));
+    REQUIRE(h.quick_start_action->text() == QStringLiteral("&Quick Start Guide"));
+    REQUIRE(h.faq_action->text() == QStringLiteral("&FAQ"));
     REQUIRE(h.development_prompt_logging_action->text() ==
             QStringLiteral("Log prompts and responses to stdout"));
 

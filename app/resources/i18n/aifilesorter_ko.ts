@@ -1172,6 +1172,11 @@ Please open this link manually:
             <translation>크레딧</translation>
         </message>
         <message>
+            <location filename="../../lib/MainAppHelpActions.cpp" line="185" />
+            <source>Quick Start Guide</source>
+            <translation>빠른 시작 가이드</translation>
+        </message>
+        <message>
             <location filename="../../lib/MainAppHelpActions.cpp" line="116" />
             <source>About the AGPL License</source>
             <translation>AGPL 라이선스 정보</translation>
@@ -2073,6 +2078,16 @@ Tried:
             <location filename="../../lib/UiTranslator.cpp" line="268" />
             <source>&amp;Help</source>
             <translation>&amp;도움말</translation>
+        </message>
+        <message>
+            <location filename="../../lib/UiTranslator.cpp" line="260" />
+            <source>&amp;Quick Start Guide</source>
+            <translation>&amp;빠른 시작 가이드</translation>
+        </message>
+        <message>
+            <location filename="../../lib/UiTranslator.cpp" line="261" />
+            <source>&amp;FAQ</source>
+            <translation>&amp;FAQ</translation>
         </message>
         <message>
             <location filename="../../lib/UiTranslator.cpp" line="276" />

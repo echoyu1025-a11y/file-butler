@@ -391,6 +391,8 @@ private:
     QAction* category_language_spanish{nullptr};
     QAction* category_language_turkish{nullptr};
     QAction* about_action{nullptr};
+    QAction* quick_start_action{nullptr};
+    QAction* faq_action{nullptr};
     QAction* about_qt_action{nullptr};
     QAction* about_agpl_action{nullptr};
     QAction* support_project_action{nullptr};

@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include "MainAppHelpActions.hpp"
 #include "MainApp.hpp"
 #include "MainAppTestAccess.hpp"
 #include "TestHelpers.hpp"
@@ -206,6 +207,97 @@ TEST_CASE("Updater strings are translated for all supported UI languages") {
         REQUIRE(quit_and_launch_message == entry.quit_and_launch_message);
         REQUIRE(quit_and_launch_button == entry.quit_and_launch_button);
         REQUIRE(whats_new_in_version == entry.whats_new_in_version);
+    }
+}
+
+TEST_CASE("Quick Start guide content follows the selected app language")
+{
+    EnvVarGuard platform_guard("QT_QPA_PLATFORM", "offscreen");
+    QtAppContext qt_context;
+
+    TranslationManager::instance().set_language(Language::English);
+    const QString english = MainAppHelpActions::quick_start_markdown_for_language(
+        TranslationManager::instance().current_language());
+    REQUIRE(english.contains(QStringLiteral("# Quick Start Guide")));
+    REQUIRE(english.contains(QStringLiteral("Choose a Folder")));
+
+    TranslationManager::instance().set_language(Language::French);
+    const QString french = MainAppHelpActions::quick_start_markdown_for_language(
+        TranslationManager::instance().current_language());
+    REQUIRE(french.contains(QStringLiteral("# Guide de demarrage rapide")));
+    REQUIRE(french.contains(QStringLiteral("Choisir un dossier")));
+
+    TranslationManager::instance().set_language(Language::Korean);
+    const QString korean = MainAppHelpActions::quick_start_markdown_for_language(
+        TranslationManager::instance().current_language());
+    REQUIRE(korean.contains(QStringLiteral("# 빠른 시작 가이드")));
+    REQUIRE(korean.contains(QStringLiteral("폴더 선택")));
+}
+
+TEST_CASE("Quick Start and FAQ help labels are translated for all supported UI languages")
+{
+    EnvVarGuard platform_guard("QT_QPA_PLATFORM", "offscreen");
+    QtAppContext qt_context;
+
+    struct ExpectedTranslation {
+        Language language;
+        QString quick_start_menu;
+        QString faq_menu;
+        QString quick_start_title;
+    };
+
+    const std::vector<ExpectedTranslation> expected = {
+        {Language::English,
+         QStringLiteral("&Quick Start Guide"),
+         QStringLiteral("&FAQ"),
+         QStringLiteral("Quick Start Guide")},
+        {Language::French,
+         QStringLiteral("&Guide de démarrage rapide"),
+         QStringLiteral("&FAQ"),
+         QStringLiteral("Guide de démarrage rapide")},
+        {Language::German,
+         QStringLiteral("&Schnellstartanleitung"),
+         QStringLiteral("&FAQ"),
+         QStringLiteral("Schnellstartanleitung")},
+        {Language::Italian,
+         QStringLiteral("&Guida rapida"),
+         QStringLiteral("&FAQ"),
+         QStringLiteral("Guida rapida")},
+        {Language::Spanish,
+         QStringLiteral("&Guía de inicio rápido"),
+         QStringLiteral("&FAQ"),
+         QStringLiteral("Guía de inicio rápido")},
+        {Language::Dutch,
+         QStringLiteral("&Snelstartgids"),
+         QStringLiteral("&FAQ"),
+         QStringLiteral("Snelstartgids")},
+        {Language::Turkish,
+         QStringLiteral("&Hızlı Başlangıç Kılavuzu"),
+         QStringLiteral("&SSS"),
+         QStringLiteral("Hızlı Başlangıç Kılavuzu")},
+        {Language::Korean,
+         QStringLiteral("&빠른 시작 가이드"),
+         QStringLiteral("&FAQ"),
+         QStringLiteral("빠른 시작 가이드")}
+    };
+
+    for (const auto& entry : expected) {
+        TranslationManager::instance().set_language(entry.language);
+
+        const auto quick_start_menu =
+            QCoreApplication::translate("UiTranslator", "&Quick Start Guide");
+        const auto faq_menu = QCoreApplication::translate("UiTranslator", "&FAQ");
+        const auto quick_start_title =
+            QCoreApplication::translate("QObject", "Quick Start Guide");
+
+        CAPTURE(static_cast<int>(entry.language),
+                quick_start_menu,
+                faq_menu,
+                quick_start_title);
+
+        REQUIRE(quick_start_menu == entry.quick_start_menu);
+        REQUIRE(faq_menu == entry.faq_menu);
+        REQUIRE(quick_start_title == entry.quick_start_title);
     }
 }
 #endif

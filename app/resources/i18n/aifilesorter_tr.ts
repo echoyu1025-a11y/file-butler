@@ -1152,6 +1152,11 @@ Lütfen bu bağlantıyı elle açın:
             <translation>Emeği geçenler</translation>
         </message>
         <message>
+            <location filename="../../lib/MainAppHelpActions.cpp" line="185" />
+            <source>Quick Start Guide</source>
+            <translation>Hızlı Başlangıç Kılavuzu</translation>
+        </message>
+        <message>
             <location filename="../../lib/MainAppHelpActions.cpp" line="116" />
             <source>About the AGPL License</source>
             <translation>AGPL lisansı hakkında</translation>
@@ -2073,6 +2078,16 @@ Denenen yollar:
             <location filename="../../lib/UiTranslator.cpp" line="268" />
             <source>&amp;Help</source>
             <translation>&amp;Yardım</translation>
+        </message>
+        <message>
+            <location filename="../../lib/UiTranslator.cpp" line="260" />
+            <source>&amp;Quick Start Guide</source>
+            <translation>&amp;Hızlı Başlangıç Kılavuzu</translation>
+        </message>
+        <message>
+            <location filename="../../lib/UiTranslator.cpp" line="261" />
+            <source>&amp;FAQ</source>
+            <translation>&amp;SSS</translation>
         </message>
         <message>
             <location filename="../../lib/UiTranslator.cpp" line="276" />

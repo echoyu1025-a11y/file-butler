@@ -1,13 +1,16 @@
 #include "MainAppHelpActions.hpp"
 #include "AppInfo.hpp"
+#include "TranslationManager.hpp"
 
 #include <app_version.hpp>
 
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QFile>
 #include <QLabel>
 #include <QPixmap>
 #include <QTabWidget>
+#include <QTextBrowser>
 #include <QVBoxLayout>
 #include <QString>
 #include <QDesktopServices>
@@ -19,6 +22,66 @@ namespace {
 QString support_page_url_string()
 {
     return QStringLiteral("https://filesorter.app/donate/");
+}
+
+QString faq_page_url_string()
+{
+    return QStringLiteral("https://filesorter.app/faq/");
+}
+
+QString quick_start_fallback_markdown()
+{
+    return QStringLiteral(
+        "# Quick Start Guide\n\n"
+        "Use **Browse** to choose a folder, enable the options you need, run the "
+        "analysis, and review the suggested moves and renames before applying them.");
+}
+
+QString quick_start_resource_path(Language language)
+{
+    switch (language) {
+    case Language::Dutch:
+        return QStringLiteral(":/net/quicknode/AIFileSorter/help/quick_start_nl.md");
+    case Language::French:
+        return QStringLiteral(":/net/quicknode/AIFileSorter/help/quick_start_fr.md");
+    case Language::German:
+        return QStringLiteral(":/net/quicknode/AIFileSorter/help/quick_start_de.md");
+    case Language::Italian:
+        return QStringLiteral(":/net/quicknode/AIFileSorter/help/quick_start_it.md");
+    case Language::Spanish:
+        return QStringLiteral(":/net/quicknode/AIFileSorter/help/quick_start_es.md");
+    case Language::Turkish:
+        return QStringLiteral(":/net/quicknode/AIFileSorter/help/quick_start_tr.md");
+    case Language::Korean:
+        return QStringLiteral(":/net/quicknode/AIFileSorter/help/quick_start_ko.md");
+    case Language::English:
+    default:
+        return QStringLiteral(":/net/quicknode/AIFileSorter/help/quick_start.md");
+    }
+}
+
+QString load_text_resource(const QString& path)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return {};
+    }
+    return QString::fromUtf8(file.readAll());
+}
+
+QString quick_start_markdown_for_language_impl(Language language)
+{
+    if (const QString localized = load_text_resource(quick_start_resource_path(language));
+        !localized.isEmpty()) {
+        return localized;
+    }
+
+    if (const QString english = load_text_resource(quick_start_resource_path(Language::English));
+        !english.isEmpty()) {
+        return english;
+    }
+
+    return quick_start_fallback_markdown();
 }
 
 bool open_external_url(const QUrl& url)
@@ -116,6 +179,28 @@ void MainAppHelpActions::show_about(QWidget* parent)
     dialog.exec();
 }
 
+void MainAppHelpActions::show_quick_start(QWidget* parent)
+{
+    QDialog dialog(parent);
+    dialog.setWindowTitle(QObject::tr("Quick Start Guide"));
+    dialog.resize(720, 560);
+
+    auto* layout = new QVBoxLayout(&dialog);
+
+    auto* browser = new QTextBrowser(&dialog);
+    browser->setOpenExternalLinks(false);
+    browser->setReadOnly(true);
+    browser->setMarkdown(
+        quick_start_markdown_for_language_impl(TranslationManager::instance().current_language()));
+    layout->addWidget(browser);
+
+    auto* button_box = new QDialogButtonBox(QDialogButtonBox::Close, &dialog);
+    QObject::connect(button_box, &QDialogButtonBox::rejected, &dialog, &QDialog::accept);
+    layout->addWidget(button_box);
+
+    dialog.exec();
+}
+
 void MainAppHelpActions::show_agpl_info(QWidget* parent)
 {
     QDialog dialog(parent);
@@ -145,6 +230,23 @@ void MainAppHelpActions::show_agpl_info(QWidget* parent)
 
     dialog.exec();
 }
+
+QString MainAppHelpActions::faq_page_url()
+{
+    return faq_page_url_string();
+}
+
+bool MainAppHelpActions::open_faq_page()
+{
+    return open_external_url(QUrl(faq_page_url_string()));
+}
+
+#ifdef AI_FILE_SORTER_TEST_BUILD
+QString MainAppHelpActions::quick_start_markdown_for_language(Language language)
+{
+    return quick_start_markdown_for_language_impl(language);
+}
+#endif
 
 QString MainAppHelpActions::support_page_url()
 {

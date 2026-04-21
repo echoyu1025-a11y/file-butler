@@ -116,6 +116,8 @@ public:
         QAction*& category_language_spanish;
         QAction*& category_language_turkish;
         QAction*& about_action;
+        QAction*& quick_start_action;
+        QAction*& faq_action;
         QAction*& about_qt_action;
         QAction*& about_agpl_action;
         QAction*& support_project_action;

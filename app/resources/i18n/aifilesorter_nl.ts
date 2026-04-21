@@ -1152,6 +1152,11 @@ Open deze link handmatig:
             <translation>Credits</translation>
         </message>
         <message>
+            <location filename="../../lib/MainAppHelpActions.cpp" line="185" />
+            <source>Quick Start Guide</source>
+            <translation>Snelstartgids</translation>
+        </message>
+        <message>
             <location filename="../../lib/MainAppHelpActions.cpp" line="116" />
             <source>About the AGPL License</source>
             <translation>Over de AGPL-licentie</translation>
@@ -2073,6 +2078,16 @@ Geprobeerd:
             <location filename="../../lib/UiTranslator.cpp" line="268" />
             <source>&amp;Help</source>
             <translation>&amp;Help</translation>
+        </message>
+        <message>
+            <location filename="../../lib/UiTranslator.cpp" line="260" />
+            <source>&amp;Quick Start Guide</source>
+            <translation>&amp;Snelstartgids</translation>
+        </message>
+        <message>
+            <location filename="../../lib/UiTranslator.cpp" line="261" />
+            <source>&amp;FAQ</source>
+            <translation>&amp;FAQ</translation>
         </message>
         <message>
             <location filename="../../lib/UiTranslator.cpp" line="276" />

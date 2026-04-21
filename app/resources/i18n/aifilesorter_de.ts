@@ -1152,6 +1152,11 @@ Bitte öffnen Sie diesen Link manuell:
             <translation>Danksagungen</translation>
         </message>
         <message>
+            <location filename="../../lib/MainAppHelpActions.cpp" line="185" />
+            <source>Quick Start Guide</source>
+            <translation>Schnellstartanleitung</translation>
+        </message>
+        <message>
             <location filename="../../lib/MainAppHelpActions.cpp" line="116" />
             <source>About the AGPL License</source>
             <translation>Über die AGPL-Lizenz</translation>

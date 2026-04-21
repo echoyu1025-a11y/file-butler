@@ -4,6 +4,14 @@
     <file>images/qn_logo.png</file>
     <file>images/app_icon_128.png</file>
     <file>images/icon_512x512.png</file>
+    <file>help/quick_start.md</file>
+    <file>help/quick_start_nl.md</file>
+    <file>help/quick_start_fr.md</file>
+    <file>help/quick_start_de.md</file>
+    <file>help/quick_start_it.md</file>
+    <file>help/quick_start_es.md</file>
+    <file>help/quick_start_tr.md</file>
+    <file>help/quick_start_ko.md</file>
     <file>.env</file>
     <file>certs/cacert.pem</file>
   </qresource>

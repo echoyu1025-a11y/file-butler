@@ -544,6 +544,14 @@ set(APP_RESOURCE_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/resources/images/qn_logo.png"
     "${CMAKE_CURRENT_SOURCE_DIR}/resources/images/app_icon_128.png"
     "${CMAKE_CURRENT_SOURCE_DIR}/resources/images/icon_512x512.png"
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/help/quick_start.md"
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/help/quick_start_nl.md"
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/help/quick_start_fr.md"
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/help/quick_start_de.md"
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/help/quick_start_it.md"
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/help/quick_start_es.md"
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/help/quick_start_tr.md"
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/help/quick_start_ko.md"
     "${CMAKE_CURRENT_SOURCE_DIR}/resources/certs/cacert.pem"
 )
 
@@ -566,6 +574,38 @@ set_source_files_properties(
 set_source_files_properties(
     "${CMAKE_CURRENT_SOURCE_DIR}/resources/images/icon_512x512.png"
     PROPERTIES QT_RESOURCE_ALIAS "images/icon_512x512.png"
+)
+set_source_files_properties(
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/help/quick_start.md"
+    PROPERTIES QT_RESOURCE_ALIAS "help/quick_start.md"
+)
+set_source_files_properties(
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/help/quick_start_nl.md"
+    PROPERTIES QT_RESOURCE_ALIAS "help/quick_start_nl.md"
+)
+set_source_files_properties(
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/help/quick_start_fr.md"
+    PROPERTIES QT_RESOURCE_ALIAS "help/quick_start_fr.md"
+)
+set_source_files_properties(
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/help/quick_start_de.md"
+    PROPERTIES QT_RESOURCE_ALIAS "help/quick_start_de.md"
+)
+set_source_files_properties(
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/help/quick_start_it.md"
+    PROPERTIES QT_RESOURCE_ALIAS "help/quick_start_it.md"
+)
+set_source_files_properties(
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/help/quick_start_es.md"
+    PROPERTIES QT_RESOURCE_ALIAS "help/quick_start_es.md"
+)
+set_source_files_properties(
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/help/quick_start_tr.md"
+    PROPERTIES QT_RESOURCE_ALIAS "help/quick_start_tr.md"
+)
+set_source_files_properties(
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/help/quick_start_ko.md"
+    PROPERTIES QT_RESOURCE_ALIAS "help/quick_start_ko.md"
 )
 set_source_files_properties(
     "${CMAKE_CURRENT_SOURCE_DIR}/resources/certs/cacert.pem"
@@ -1149,6 +1189,11 @@ if(AI_FILE_SORTER_BUILD_TESTS)
         llama
         ${MEDIAINFO_DEPS_LIBS}
         ${DOC_DEPS_LIBS}
+    )
+
+    qt_add_resources(ai_file_sorter_tests "ai_file_sorter_test_app_resources"
+        PREFIX "/net/quicknode/AIFileSorter"
+        FILES ${APP_RESOURCE_FILES}
     )
 
     aifs_add_translation_resources(ai_file_sorter_tests)
