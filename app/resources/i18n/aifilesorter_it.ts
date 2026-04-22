@@ -1004,11 +1004,6 @@ Apri manualmente questo link:
             <translation>L'analisi delle immagini ha esaurito la memoria GPU.</translation>
         </message>
         <message>
-            <location filename="../../lib/MainApp.cpp" line="2949" />
-            <source>Retry on CPU instead? Cancel will skip visual analysis and fall back to filename-based categorization.</source>
-            <translation>Riprovare invece sulla CPU? Annulla salterà l'analisi visiva e userà la categorizzazione basata sul nome file.</translation>
-        </message>
-        <message>
             <location filename="../../lib/MainApp.cpp" line="2986" />
             <source>[VISION-ERROR] %1 (%2)</source>
             <translation>[ERRORE-VISIONE] %1 (%2)</translation>

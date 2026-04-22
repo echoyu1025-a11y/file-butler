@@ -1004,11 +1004,6 @@ Abre este enlace manualmente:
             <translation>El análisis de imágenes se quedó sin memoria de GPU.</translation>
         </message>
         <message>
-            <location filename="../../lib/MainApp.cpp" line="2949" />
-            <source>Retry on CPU instead? Cancel will skip visual analysis and fall back to filename-based categorization.</source>
-            <translation>¿Reintentar en la CPU? Cancelar omitirá el análisis visual y volverá a la categorización basada en nombres de archivo.</translation>
-        </message>
-        <message>
             <location filename="../../lib/MainApp.cpp" line="2986" />
             <source>[VISION-ERROR] %1 (%2)</source>
             <translation>[ERROR-VISIÓN] %1 (%2)</translation>

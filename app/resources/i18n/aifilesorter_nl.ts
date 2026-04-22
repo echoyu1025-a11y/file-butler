@@ -1004,11 +1004,6 @@ Open deze link handmatig:
             <translation>De beeldanalyse heeft geen GPU-geheugen meer.</translation>
         </message>
         <message>
-            <location filename="../../lib/MainApp.cpp" line="2949" />
-            <source>Retry on CPU instead? Cancel will skip visual analysis and fall back to filename-based categorization.</source>
-            <translation>Opnieuw proberen op de CPU? Annuleren slaat de visuele analyse over en valt terug op categorisering op basis van bestandsnamen.</translation>
-        </message>
-        <message>
             <location filename="../../lib/MainApp.cpp" line="2986" />
             <source>[VISION-ERROR] %1 (%2)</source>
             <translation>[VISIE-FOUT] %1 (%2)</translation>

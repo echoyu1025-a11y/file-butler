@@ -878,6 +878,7 @@ void MainApp::on_analyze_clicked()
 
     stop_analysis = false;
     text_cpu_fallback_choice_.reset();
+    visual_cpu_fallback_choice_.reset();
     update_analyze_button_state(true);
 
     const bool show_subcategory = use_subcategories_checkbox->isChecked();
@@ -1943,6 +1944,55 @@ bool MainApp::prompt_text_cpu_fallback(const std::string& reason)
 
     if (core_logger && !reason.empty()) {
         core_logger->warn("GPU fallback accepted: {}", reason);
+    }
+    return true;
+}
+
+bool MainApp::prompt_visual_cpu_fallback(const std::string& reason)
+{
+    if (visual_cpu_fallback_choice_.has_value()) {
+        return visual_cpu_fallback_choice_.value();
+    }
+
+    auto show_dialog = [this]() -> bool {
+#if defined(AI_FILE_SORTER_TEST_BUILD)
+        if (visual_cpu_fallback_prompt_override_) {
+            return visual_cpu_fallback_prompt_override_();
+        }
+#endif
+        QMessageBox box(this);
+        box.setIcon(QMessageBox::Question);
+        box.setWindowTitle(tr("Switch image analysis to CPU?"));
+        box.setText(tr("Image analysis ran out of GPU memory."));
+        box.setInformativeText(tr("Retry on CPU instead? Cancel will stop this analysis."));
+        box.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+        box.setDefaultButton(QMessageBox::Ok);
+        return box.exec() == QMessageBox::Ok;
+    };
+
+    bool decision = false;
+    if (QThread::currentThread() == thread()) {
+        decision = show_dialog();
+    } else {
+        QMetaObject::invokeMethod(
+            this,
+            [&decision, show_dialog]() mutable { decision = show_dialog(); },
+            Qt::BlockingQueuedConnection);
+    }
+
+    visual_cpu_fallback_choice_ = decision;
+
+    if (!decision) {
+        stop_analysis = true;
+        append_progress(to_utf8(tr("[WARN] GPU fallback to CPU declined. Cancelling analysis.")));
+        if (core_logger && !reason.empty()) {
+            core_logger->warn("Visual GPU fallback declined: {}", reason);
+        }
+        return false;
+    }
+
+    if (core_logger && !reason.empty()) {
+        core_logger->warn("Visual GPU fallback accepted: {}", reason);
     }
     return true;
 }

@@ -11,9 +11,6 @@
 #include "Utils.hpp"
 #include "VisualLlmRuntime.hpp"
 
-#include <QMessageBox>
-#include <QMetaObject>
-#include <QThread>
 #include <QByteArray>
 
 #include <algorithm>
@@ -29,6 +26,12 @@
 #include <vector>
 
 namespace {
+
+class AnalysisCancelled : public std::runtime_error {
+public:
+    explicit AnalysisCancelled(const std::string& message)
+        : std::runtime_error(message) {}
+};
 
 std::string to_utf8(const QString& value)
 {
@@ -842,30 +845,6 @@ void AnalysisCoordinator::execute()
                 return VisualLlmRuntime::should_offer_cpu_fallback(ex.what());
             };
 
-            auto prompt_visual_cpu_fallback = [this]() -> bool {
-                auto show_dialog = [this]() -> bool {
-                    QMessageBox box(&app_);
-                    box.setIcon(QMessageBox::Question);
-                    box.setWindowTitle(app_.tr("Switch image analysis to CPU?"));
-                    box.setText(app_.tr("Image analysis ran out of GPU memory."));
-                    box.setInformativeText(
-                        app_.tr("Retry on CPU instead? Cancel will skip visual analysis and fall back to "
-                                "filename-based categorization."));
-                    box.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
-                    box.setDefaultButton(QMessageBox::Ok);
-                    return box.exec() == QMessageBox::Ok;
-                };
-                if (QThread::currentThread() == app_.thread()) {
-                    return show_dialog();
-                }
-                bool decision = false;
-                QMetaObject::invokeMethod(
-                    &app_,
-                    [&decision, show_dialog]() mutable { decision = show_dialog(); },
-                    Qt::BlockingQueuedConnection);
-                return decision;
-            };
-
             auto update_cached_image_suggestion = [&](const FileEntry& entry,
                                                       const std::string& suggested_name) {
                 const auto it = cached_visual_indices.find(entry_key(entry));
@@ -997,16 +976,10 @@ void AnalysisCoordinator::execute()
                     }
                 } else {
                     if (!visual_cpu_fallback_choice.has_value()) {
-                        visual_cpu_fallback_choice = prompt_visual_cpu_fallback();
+                        visual_cpu_fallback_choice = app_.prompt_visual_cpu_fallback(ex.what());
                     }
                     if (!visual_cpu_fallback_choice.value()) {
-                        skip_visual_analysis = true;
-                        skip_visual_reason = ex.what();
-                        if (app_.core_logger) {
-                            app_.core_logger->warn(
-                                "Visual CPU fallback declined after initialization failure: {}",
-                                ex.what());
-                        }
+                        throw AnalysisCancelled("Visual CPU fallback declined.");
                     } else {
                         app_.append_progress(
                             to_utf8(app_.tr("[VISION] Switching visual analysis to CPU.")));
@@ -1160,7 +1133,7 @@ void AnalysisCoordinator::execute()
                                         ex.what());
                                 }
                                 if (!visual_cpu_fallback_choice.has_value()) {
-                                    visual_cpu_fallback_choice = prompt_visual_cpu_fallback();
+                                    visual_cpu_fallback_choice = app_.prompt_visual_cpu_fallback(ex.what());
                                 }
                                 if (visual_cpu_fallback_choice.value()) {
                                     app_.append_progress(to_utf8(
@@ -1199,16 +1172,7 @@ void AnalysisCoordinator::execute()
                                         continue;
                                     }
                                 } else {
-                                    if (app_.core_logger) {
-                                        app_.core_logger->warn(
-                                            "Visual CPU fallback declined for '{}': {}",
-                                            entry.file_name,
-                                            ex.what());
-                                    }
-                                    app_.append_progress(to_utf8(app_.tr(
-                                        "[VISION] Visual analysis disabled; falling back to filenames.")));
-                                    handle_visual_failure(entry, ex.what(), already_renamed, true, visual_only);
-                                    stop_visual_analysis = true;
+                                    throw AnalysisCancelled("Visual CPU fallback declined.");
                                 }
                             } else {
                                 if (app_.core_logger) {
@@ -1801,6 +1765,12 @@ void AnalysisCoordinator::execute()
                 app->handle_analysis_finished();
             }
         });
+    } catch (const AnalysisCancelled& ex) {
+        if (app_.core_logger) {
+            app_.core_logger->info("Analysis cancelled: {}", ex.what());
+        }
+        MainApp* const app = &app_;
+        app_.run_on_ui([app]() { app->handle_analysis_cancelled(); });
     } catch (const std::exception& ex) {
         app_.core_logger->error("Exception during analysis: {}", ex.what());
         const bool cancelled =

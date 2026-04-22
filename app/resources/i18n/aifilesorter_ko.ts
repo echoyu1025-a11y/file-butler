@@ -1004,11 +1004,6 @@ Please open this link manually:
             <translation>이미지 분석 중 GPU 메모리가 부족해졌습니다.</translation>
         </message>
         <message>
-            <location filename="../../lib/MainApp.cpp" line="2949" />
-            <source>Retry on CPU instead? Cancel will skip visual analysis and fall back to filename-based categorization.</source>
-            <translation>대신 CPU에서 다시 시도할까요? 취소하면 시각 분석을 건너뛰고 파일 이름 기반 분류로 대체합니다.</translation>
-        </message>
-        <message>
             <location filename="../../lib/MainApp.cpp" line="2986" />
             <source>[VISION-ERROR] %1 (%2)</source>
             <translation>[VISION-ERROR] %1 (%2)</translation>

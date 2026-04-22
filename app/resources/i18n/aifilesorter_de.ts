@@ -1004,11 +1004,6 @@ Bitte öffnen Sie diesen Link manuell:
             <translation>Der Bildanalyse ist der GPU-Speicher ausgegangen.</translation>
         </message>
         <message>
-            <location filename="../../lib/MainApp.cpp" line="2949" />
-            <source>Retry on CPU instead? Cancel will skip visual analysis and fall back to filename-based categorization.</source>
-            <translation>Stattdessen auf der CPU erneut versuchen? Bei Abbrechen wird die visuelle Analyse übersprungen und auf dateinamenbasierte Kategorisierung zurückgegriffen.</translation>
-        </message>
-        <message>
             <location filename="../../lib/MainApp.cpp" line="2986" />
             <source>[VISION-ERROR] %1 (%2)</source>
             <translation>[VISION-FEHLER] %1 (%2)</translation>

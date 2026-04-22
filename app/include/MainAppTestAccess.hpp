@@ -212,6 +212,25 @@ public:
      */
     static void set_image_analysis_prompt_override(MainApp& app, std::function<bool()> prompt);
     /**
+     * @brief Override the visual CPU fallback prompt flow.
+     * @param app MainApp instance.
+     * @param prompt Callback returning whether CPU retry is accepted.
+     */
+    static void set_visual_cpu_fallback_prompt_override(MainApp& app, std::function<bool()> prompt);
+    /**
+     * @brief Invoke the visual CPU fallback prompt path.
+     * @param app MainApp instance.
+     * @param reason Failure reason to report.
+     * @return True when CPU retry is accepted.
+     */
+    static bool prompt_visual_cpu_fallback(MainApp& app, const std::string& reason);
+    /**
+     * @brief Return whether analysis cancellation has been requested.
+     * @param app MainApp instance.
+     * @return True when the stop-analysis flag is set.
+     */
+    static bool stop_analysis_requested(const MainApp& app);
+    /**
      * @brief Returns whether a visual-analysis failure should offer CPU retry.
      * @param reason Exception text produced by the failed visual analysis step.
      * @return True when the failure looks like GPU memory pressure.

@@ -296,6 +296,7 @@ private:
      */
     void post_analysis_failure(std::string message);
     bool prompt_text_cpu_fallback(const std::string& reason);
+    bool prompt_visual_cpu_fallback(const std::string& reason);
     StorageSupportResolution resolve_storage_support(const StorageProviderDetection& detection) const;
 
     friend class MainAppUiBuilder;
@@ -438,6 +439,7 @@ private:
     std::string last_storage_support_warning_key_;
     std::string last_storage_provider_notice_key_;
     std::optional<bool> text_cpu_fallback_choice_;
+    std::optional<bool> visual_cpu_fallback_choice_;
     bool should_log_prompts() const;
     void apply_development_logging();
 
@@ -448,6 +450,7 @@ private:
     std::function<bool()> visual_llm_available_probe_;
     std::function<void()> llm_selection_runner_override_;
     std::function<bool()> image_analysis_prompt_override_;
+    std::function<bool()> visual_cpu_fallback_prompt_override_;
 #endif
 };
 

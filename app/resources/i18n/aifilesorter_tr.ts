@@ -1004,11 +1004,6 @@ Lütfen bu bağlantıyı elle açın:
             <translation>Görüntü analizi GPU belleğini tüketti.</translation>
         </message>
         <message>
-            <location filename="../../lib/MainApp.cpp" line="2949" />
-            <source>Retry on CPU instead? Cancel will skip visual analysis and fall back to filename-based categorization.</source>
-            <translation>Bunun yerine CPU'da yeniden denensin mi? İptal, görsel analizi atlayıp dosya adına dayalı kategorizasyona döner.</translation>
-        </message>
-        <message>
             <location filename="../../lib/MainApp.cpp" line="2986" />
             <source>[VISION-ERROR] %1 (%2)</source>
             <translation>[GÖRSEL-HATA] %1 (%2)</translation>

@@ -1004,11 +1004,6 @@ Veuillez ouvrir ce lien manuellement :
             <translation>L'analyse d'image a manqué de mémoire GPU.</translation>
         </message>
         <message>
-            <location filename="../../lib/MainApp.cpp" line="2949" />
-            <source>Retry on CPU instead? Cancel will skip visual analysis and fall back to filename-based categorization.</source>
-            <translation>Réessayer plutôt sur le CPU ? Annuler ignorera l'analyse visuelle et reviendra à une catégorisation basée sur le nom de fichier.</translation>
-        </message>
-        <message>
             <location filename="../../lib/MainApp.cpp" line="2986" />
             <source>[VISION-ERROR] %1 (%2)</source>
             <translation>[ERREUR-VISION] %1 (%2)</translation>

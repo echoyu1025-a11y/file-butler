@@ -184,6 +184,36 @@ Procedure: Run `split_entries_for_analysis()` in two sections: (a) normal catego
 Expected outcome: In normal mode, the already-renamed image is routed to filename-based categorization ("other" bucket). In rename-only mode, the already-renamed image is excluded entirely.
 Run: `./build-tests/ai_file_sorter_tests "Already-renamed images skip vision analysis"`
 
+### `tests/unit/test_main_app_visual_fallback.cpp`
+
+#### Test case: Visual CPU fallback detection recognizes retryable GPU failures
+Purpose: Ensure visual-analysis GPU failure messages that can be retried on CPU are recognized.
+Setup: Provide representative llama context, mtmd, Vulkan, and CUDA memory failure messages.
+Procedure: Pass each message through the visual CPU fallback classifier.
+Expected outcome: Each retryable GPU failure returns true.
+Run: `./build-tests/ai_file_sorter_tests "Visual CPU fallback detection recognizes retryable GPU failures"`
+
+#### Test case: Visual CPU fallback detection ignores non-retryable startup failures
+Purpose: Avoid offering CPU retry when the visual model files or projector capabilities are invalid.
+Setup: Provide missing model, missing projector, and invalid projector messages.
+Procedure: Pass each message through the visual CPU fallback classifier.
+Expected outcome: Each non-retryable startup failure returns false.
+Run: `./build-tests/ai_file_sorter_tests "Visual CPU fallback detection ignores non-retryable startup failures"`
+
+#### Test case: Visual CPU fallback decline requests analysis cancellation
+Purpose: Confirm cancelling the visual CPU retry prompt stops the whole analysis instead of continuing with filename-based categorization.
+Setup: Build `MainApp` with an override that declines the visual CPU fallback prompt.
+Procedure: Invoke the visual CPU fallback prompt path twice.
+Expected outcome: The first decline sets the stop-analysis flag, and the cached decline is reused without prompting again.
+Run: `./build-tests/ai_file_sorter_tests "Visual CPU fallback decline requests analysis cancellation"`
+
+#### Test case: Visual CPU fallback acceptance keeps analysis running
+Purpose: Confirm accepting visual CPU fallback does not request analysis cancellation.
+Setup: Build `MainApp` with an override that accepts the visual CPU fallback prompt.
+Procedure: Invoke the visual CPU fallback prompt path.
+Expected outcome: The prompt returns true and the stop-analysis flag remains false.
+Run: `./build-tests/ai_file_sorter_tests "Visual CPU fallback acceptance keeps analysis running"`
+
 ### `tests/unit/test_main_app_cache_action.cpp` (non-Windows only)
 
 #### Test case: Settings maintenance actions stay separate and follow analysis state
