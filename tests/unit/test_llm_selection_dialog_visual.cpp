@@ -73,6 +73,7 @@ TEST_CASE("Visual model entry shows missing env var state") {
     EnvVarGuard gemma_mmproj_guard("GEMMA3_4B_MMPROJ_URL", std::nullopt);
 
     Settings settings;
+    settings.set_visual_model_id("llava-v1.6-mistral-7b");
     LLMSelectionDialog dialog(settings);
 
     const auto entry = LLMSelectionDialogTestAccess::llava_model_entry(dialog);
@@ -103,6 +104,7 @@ TEST_CASE("Visual model entry shows resume state for partial downloads") {
     EnvVarGuard gemma_mmproj_guard("GEMMA3_4B_MMPROJ_URL", std::nullopt);
 
     Settings settings;
+    settings.set_visual_model_id("llava-v1.6-mistral-7b");
     LLMSelectionDialog dialog(settings);
 
     auto entry = LLMSelectionDialogTestAccess::llava_model_entry(dialog);
@@ -141,6 +143,7 @@ TEST_CASE("Visual model entry reports download errors") {
     EnvVarGuard gemma_mmproj_guard("GEMMA3_4B_MMPROJ_URL", std::nullopt);
 
     Settings settings;
+    settings.set_visual_model_id("llava-v1.6-mistral-7b");
     LLMSelectionDialog dialog(settings);
     LLMSelectionDialogTestAccess::set_network_available_override(dialog, true);
 

@@ -9,6 +9,8 @@
 #include <QtNetwork/QLocalSocket>
 #include <QStandardPaths>
 
+#include <cstdlib>
+
 namespace {
 
 QString normalized_instance_id(QString instance_id)
@@ -22,6 +24,13 @@ QString normalized_instance_id(QString instance_id)
 
 QString runtime_directory()
 {
+    if (const char* override_dir = std::getenv("AI_FILE_SORTER_SINGLE_INSTANCE_RUNTIME_DIR");
+        override_dir && *override_dir) {
+        QDir dir(QString::fromLocal8Bit(override_dir));
+        dir.mkpath(QStringLiteral("."));
+        return dir.absolutePath();
+    }
+
     QString path = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
     if (path.isEmpty()) {
         path = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
@@ -32,11 +41,27 @@ QString runtime_directory()
     return path;
 }
 
+QString build_server_endpoint(const QString& server_name)
+{
+#ifndef _WIN32
+    if (const char* override_dir = std::getenv("AI_FILE_SORTER_SINGLE_INSTANCE_RUNTIME_DIR");
+        override_dir && *override_dir) {
+        QDir dir(QString::fromLocal8Bit(override_dir));
+        dir.mkpath(QStringLiteral("."));
+        const QByteArray digest = QCryptographicHash::hash(server_name.toUtf8(),
+                                                           QCryptographicHash::Sha256).toHex();
+        return dir.filePath(QStringLiteral("aifs-%1.sock")
+                                .arg(QString::fromLatin1(digest.left(32))));
+    }
+#endif
+    return server_name;
+}
+
 } // namespace
 
 SingleInstanceCoordinator::SingleInstanceCoordinator(QString instance_id)
     : instance_id_(normalized_instance_id(std::move(instance_id))),
-      server_name_(build_server_name(instance_id_)),
+      server_name_(build_server_endpoint(build_server_name(instance_id_))),
       lock_file_path_(build_lock_file_path(instance_id_)),
       lock_file_(std::make_unique<QLockFile>(lock_file_path_))
 {

@@ -46,3 +46,9 @@ TEST_CASE("sanitize_path_label strips invalid UTF-8 bytes") {
 
     REQUIRE(Utils::sanitize_path_label(invalid) == "AlphaBeta");
 }
+
+TEST_CASE("sanitize_path_label preserves valid Unicode emoji labels") {
+    const std::string label = "AB Testing ☁️";
+
+    REQUIRE(Utils::sanitize_path_label(label) == label);
+}

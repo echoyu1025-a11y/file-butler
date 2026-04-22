@@ -205,7 +205,21 @@ INCLUDES=(
     -I"$ROOT_DIR/app/include"
 )
 
+QT_HEADERS="$(qmake6 -query QT_INSTALL_HEADERS 2>/dev/null || true)"
+QT_LIB_DIR="$(qmake6 -query QT_INSTALL_LIBS 2>/dev/null || true)"
+if [[ -z "$QT_HEADERS" || -z "$QT_LIB_DIR" ]]; then
+    echo "ERROR: qmake6 is required to locate Qt6 for database integration tests." >&2
+    exit 1
+fi
+
+INCLUDES+=(
+    -I"$QT_HEADERS"
+    -I"$QT_HEADERS/QtCore"
+)
+
 LIBS=(
+    -L"$QT_LIB_DIR"
+    -lQt6Core
     -lsqlite3
     -pthread
 )
@@ -213,6 +227,7 @@ LIBS=(
 g++ -std=c++20 -fPIC "${INCLUDES[@]}" \
     "$TEST_SRC" "$STUB_SRC" \
     "$ROOT_DIR/app/lib/DatabaseManager.cpp" \
+    "$ROOT_DIR/app/lib/Utils.cpp" \
     -o "$OUTPUT" "${LIBS[@]}"
 
 "$OUTPUT"

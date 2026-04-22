@@ -194,6 +194,14 @@ public:
      */
     QtAppContext() {
         if (!QApplication::instance()) {
+            const char* platform = std::getenv("QT_QPA_PLATFORM");
+            if (!platform || *platform == '\0') {
+#ifdef _WIN32
+                _putenv_s("QT_QPA_PLATFORM", "offscreen");
+#else
+                setenv("QT_QPA_PLATFORM", "offscreen", 1);
+#endif
+            }
             static int argc = 1;
             static char arg0[] = "tests";
             static char* argv[] = {arg0, nullptr};

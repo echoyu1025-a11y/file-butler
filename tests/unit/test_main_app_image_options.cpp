@@ -54,6 +54,7 @@ TEST_CASE("Image analysis checkboxes enable and enforce rename-only behavior") {
     REQUIRE(settings.save());
 
     MainApp window(settings, /*development_mode=*/false);
+    MainAppTestAccess::set_visual_llm_available_probe(window, []() { return true; });
 
     QCheckBox* analyze = MainAppTestAccess::analyze_images_checkbox(window);
     QCheckBox* process_only = MainAppTestAccess::process_images_only_checkbox(window);
@@ -185,6 +186,7 @@ TEST_CASE("Image rename-only does not disable categorization unless processing i
     REQUIRE(settings.save());
 
     MainApp window(settings, /*development_mode=*/false);
+    MainAppTestAccess::set_visual_llm_available_probe(window, []() { return true; });
 
     QCheckBox* categorize_files = MainAppTestAccess::categorize_files_checkbox(window);
     QCheckBox* analyze = MainAppTestAccess::analyze_images_checkbox(window);
