@@ -81,6 +81,18 @@ public:
      */
     static QAction* manage_storage_plugins_action(MainApp& app);
     /**
+     * @brief Access the test-mode Tests menu.
+     * @param app MainApp instance.
+     * @return Pointer to the Tests menu, or nullptr if hidden.
+     */
+    static QMenu* test_menu(MainApp& app);
+    /**
+     * @brief Access the test-mode large whitelist LLM test action.
+     * @param app MainApp instance.
+     * @return Pointer to the action, or nullptr if hidden.
+     */
+    static QAction* run_large_whitelist_llm_test_action(MainApp& app);
+    /**
      * @brief Access the \"Categorize files\" checkbox.
      * @param app MainApp instance.
      * @return Pointer to the checkbox, or nullptr if unavailable.

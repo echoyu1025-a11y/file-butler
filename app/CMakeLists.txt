@@ -1151,6 +1151,7 @@ if(AI_FILE_SORTER_BUILD_TESTS)
         "${CMAKE_CURRENT_SOURCE_DIR}/../tests/unit/test_cli_reporter.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../tests/unit/test_support_prompt.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../tests/unit/test_whitelist_and_prompt.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../tests/unit/test_app_test_runner.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../tests/unit/test_user_learning_store.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../tests/unit/test_database_manager_rename_only.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/../tests/unit/test_cache_interactions.cpp"

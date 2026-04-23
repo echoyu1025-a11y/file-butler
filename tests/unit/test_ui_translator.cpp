@@ -67,6 +67,7 @@ struct UiTranslatorTestHarness {
     QMenu* plugins_menu = new QMenu(&window);
     QMenu* development_menu = new QMenu(&window);
     QMenu* development_settings_menu = new QMenu(&window);
+    QMenu* test_menu = new QMenu(&window);
     QMenu* language_menu = new QMenu(&window);
     QMenu* category_language_menu = new QMenu(&window);
     QMenu* help_menu = new QMenu(&window);
@@ -85,6 +86,7 @@ struct UiTranslatorTestHarness {
     QAction* reset_learning_action = new QAction(&window);
     QAction* clear_cache_action = new QAction(&window);
     QAction* development_prompt_logging_action = new QAction(&window);
+    QAction* run_large_whitelist_llm_test_action = new QAction(&window);
     QAction* consistency_pass_action = new QAction(&window);
     QAction* english_action = new QAction(&window);
     QAction* dutch_action = new QAction(&window);
@@ -207,6 +209,7 @@ struct UiTranslatorTestHarness {
                 plugins_menu,
                 development_menu,
                 development_settings_menu,
+                test_menu,
                 language_menu,
                 category_language_menu,
                 help_menu},
@@ -225,6 +228,7 @@ struct UiTranslatorTestHarness {
                 reset_learning_action,
                 clear_cache_action,
                 development_prompt_logging_action,
+                run_large_whitelist_llm_test_action,
                 consistency_pass_action,
                 english_action,
                 dutch_action,
@@ -317,6 +321,7 @@ void verify_menus_and_actions(const UiTranslatorTestHarness& h)
     REQUIRE(h.file_menu->title() == QStringLiteral("&File"));
     REQUIRE(h.settings_menu->title() == QStringLiteral("&Settings"));
     REQUIRE(h.plugins_menu->title() == QStringLiteral("&Plugins"));
+    REQUIRE(h.test_menu->title() == QStringLiteral("&Tests"));
     REQUIRE(h.run_benchmark_action->text() == QStringLiteral("System compatibility check…"));
     REQUIRE(h.toggle_llm_action->text() == QStringLiteral("Select &LLM…"));
     REQUIRE(h.manage_storage_plugins_action->text() == QStringLiteral("Manage storage plugins…"));
@@ -327,6 +332,8 @@ void verify_menus_and_actions(const UiTranslatorTestHarness& h)
     REQUIRE(h.faq_action->text() == QStringLiteral("&FAQ"));
     REQUIRE(h.development_prompt_logging_action->text() ==
             QStringLiteral("Log prompts and responses to stdout"));
+    REQUIRE(h.run_large_whitelist_llm_test_action->text() ==
+            QStringLiteral("Run large whitelist LLM test…"));
 
     const QString help_title = h.help_menu->title();
     REQUIRE(help_title.endsWith(QStringLiteral("&Help")));

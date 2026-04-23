@@ -6,9 +6,34 @@ This document provides a detailed description of every test case in the project.
 - Configure tests (once): `cmake -S app -B build-tests -DAI_FILE_SORTER_BUILD_TESTS=ON -DAI_FILE_SORTER_REQUIRE_MEDIAINFOLIB=ON`
 - Build and run all tests: `cmake --build build-tests` then `ctest --test-dir build-tests --output-on-failure -j $(nproc)`
 - Run a single test case by name: `./build-tests/ai_file_sorter_tests "<test case name or pattern>"`
+- Run GUI test mode: `./build-tests/aifilesorter --test`
+- Run production-binary self-tests: `./build-tests/aifilesorter --self-test` or `./build-tests/aifilesorter --self-test=whitelist`
 - MediaInfo is expected from a package manager (`apt`/`dnf`/`pacman`/`brew`/`vcpkg`); vendored MediaInfo directories/binaries are intentionally rejected by the build.
 
+## App test modes
+
+The production executable supports two developer-oriented test modes:
+
+- `--test` launches the normal GUI, implies development mode, and adds a Tests menu. The current GUI preset creates a larger sample whitelist and sample files, then runs the normal analysis flow with the selected real LLM for manual review in the Review dialog. It reuses the user's selected LLM settings, but test-mode whitelists, categorization cache, learned behavior, undo data, and sample files are stored under an isolated `test_mode_profile` directory inside the normal config directory.
+- `--self-test` runs deterministic headless checks and exits with a pass/fail status. The current suite is `whitelist`, which builds large synthetic whitelists in a temporary config directory and verifies compact prompt candidate selection, learned-category preference, and Unicode whitelist labels. `--self-test` runs all available suites; `--self-test=whitelist` and `--self-test=whitelists` select only the whitelist suite.
+
 ## Unit test catalog
+
+### `tests/unit/test_app_test_runner.cpp`
+
+#### Test case: AppTestRunner runs whitelist self-test suite
+Purpose: Ensure the production self-test runner can execute the whitelist suite successfully.
+Setup: Construct `AppTestRunner` with the `whitelist` suite selector.
+Procedure: Run the suite and inspect aggregate and case-level results.
+Expected outcome: Three whitelist self-test cases run and all pass.
+Run: `./build-tests/ai_file_sorter_tests "AppTestRunner runs whitelist self-test suite"`
+
+#### Test case: AppTestRunner rejects unknown self-test suite
+Purpose: Verify unsupported self-test suite names fail clearly.
+Setup: Construct `AppTestRunner` with an unknown suite selector.
+Procedure: Run the suite and inspect the aggregate result.
+Expected outcome: The runner returns an error, no cases are executed, and the aggregate result fails.
+Run: `./build-tests/ai_file_sorter_tests "AppTestRunner rejects unknown self-test suite"`
 
 ### `tests/unit/test_local_llm_backend.cpp` (skipped when `GGML_USE_METAL` is defined)
 
@@ -229,6 +254,20 @@ Setup: Build one `MainApp` with development mode disabled and one with developme
 Procedure: Inspect the Plugins menu and Manage Storage Plugins action through the test access layer.
 Expected outcome: Public mode exposes neither item; development mode exposes both and the Plugins menu is visible.
 Run: `./build-tests/ai_file_sorter_tests "Plugins menu is only available in development mode"`
+
+#### Test case: Tests menu is only available in test mode
+Purpose: Ensure real-runtime test presets are hidden unless the app is launched in test mode.
+Setup: Build one public `MainApp` and one test-mode `MainApp`.
+Procedure: Inspect the Tests menu and large whitelist LLM test action through the test access layer, then simulate analysis in progress.
+Expected outcome: Public mode exposes neither item; test mode exposes both, and the action is disabled while analysis is active.
+Run: `./build-tests/ai_file_sorter_tests "Tests menu is only available in test mode"`
+
+#### Test case: Test mode can use an isolated runtime data directory
+Purpose: Ensure test-mode app-owned data can be redirected away from the normal config directory.
+Setup: Build a test-mode `MainApp` with a dedicated test profile path.
+Procedure: Let the window initialize whitelists and inspect the generated data files.
+Expected outcome: `whitelists.ini` is created in the test profile and not in the normal config directory.
+Run: `./build-tests/ai_file_sorter_tests "Test mode can use an isolated runtime data directory"`
 
 ### `tests/unit/test_ui_translator.cpp` (non-Windows only)
 

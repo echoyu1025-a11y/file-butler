@@ -770,6 +770,21 @@ Development feed selection:
 - When the app starts with `--development`, the updater prefers `UPDATE_SPEC_FILE_URL_DEVELOPMENT`.
 - If `UPDATE_SPEC_FILE_URL_DEVELOPMENT` is unset, development mode falls back to `UPDATE_SPEC_FILE_URL`.
 
+GUI test mode:
+
+- `--test` launches the normal app window, implies development mode, and adds a **Tests** menu.
+- The first test preset is **Run large whitelist LLM test…**. It creates a sample folder, configures a large transient category whitelist, and starts the normal analysis flow with the currently selected real LLM.
+- The large-whitelist preset is meant for manual/runtime validation: inspect the Review dialog to see whether the real LLM selected the expected broad categories from the compact whitelist candidates.
+- Test mode uses the user's selected LLM configuration but stores test-mode whitelists, categorization cache, learned behavior, undo data, and sample files under an isolated `test_mode_profile` directory inside the normal config directory.
+- Test mode does not save normal app settings on shutdown, so the preset folder/whitelist selection should not replace the user's ordinary configuration.
+
+Headless self-test mode:
+
+- `--self-test` runs deterministic self-tests from the production executable and exits with a pass/fail status instead of opening the main window.
+- `--self-test=whitelist` runs the deterministic large-whitelist suite explicitly. `--self-test=whitelists` is accepted as an alias.
+- The headless whitelist suite uses temporary app data, a large synthetic category list, learned-behavior fixtures, and a deterministic LLM stub. It verifies that large whitelists are reduced to relevant candidates, learned categories can outrank generic model output, and Unicode labels such as emoji survive the flow.
+- On Windows GUI builds, add `--console-log` if you want to see the self-test output in the launching console.
+
 Windows updater live-test mode:
 
 - `aifilesorter.exe` accepts the following flags directly on Windows:

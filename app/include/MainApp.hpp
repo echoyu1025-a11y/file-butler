@@ -30,6 +30,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string>
 #include <thread>
 #include <unordered_set>
 #include <unordered_map>
@@ -93,9 +94,15 @@ public:
      * @brief Constructs the main application window.
      * @param settings Persistent settings store used by the window.
      * @param development_mode True to enable development-only UI features.
+     * @param test_mode True to expose developer test-runner UI features.
+     * @param app_data_dir Optional runtime data directory for app-owned databases and test fixtures.
      * @param parent Optional parent widget.
      */
-    explicit MainApp(Settings& settings, bool development_mode, QWidget* parent = nullptr);
+    explicit MainApp(Settings& settings,
+                     bool development_mode,
+                     bool test_mode = false,
+                     std::string app_data_dir = {},
+                     QWidget* parent = nullptr);
     /**
      * @brief Destroys the main window and releases owned resources.
      */
@@ -140,6 +147,11 @@ public:
      * @return True when development-only features are enabled.
      */
     bool is_development_mode() const { return development_mode_; }
+    /**
+     * @brief Returns whether the window is running in developer test mode.
+     * @return True when test-runner UI features are enabled.
+     */
+    bool is_test_mode() const { return test_mode_; }
 
 protected:
     /**
@@ -254,6 +266,10 @@ private:
     void log_pending_queue();
     void run_consistency_pass();
     void handle_development_prompt_logging(bool checked);
+    /**
+     * @brief Creates sample files and starts the large-whitelist real-LLM test.
+     */
+    void run_large_whitelist_llm_test();
     void record_categorized_metrics(int count);
     SupportPromptResult show_support_prompt_dialog(int categorized_files);
     void undo_last_run();
@@ -307,6 +323,7 @@ private:
 #endif
 
     Settings& settings;
+    std::string runtime_data_dir_;
     DatabaseManager db_manager;
     UserLearningStore user_learning_store_;
     bool using_local_llm{false};
@@ -365,6 +382,7 @@ private:
     QMenu* plugins_menu{nullptr};
     QMenu* development_menu{nullptr};
     QMenu* development_settings_menu{nullptr};
+    QMenu* test_menu{nullptr};
     QMenu* language_menu{nullptr};
     QMenu* category_language_menu{nullptr};
     QMenu* help_menu{nullptr};
@@ -382,6 +400,7 @@ private:
     QAction* reset_learning_action{nullptr};
     QAction* clear_cache_action{nullptr};
     QAction* development_prompt_logging_action{nullptr};
+    QAction* run_large_whitelist_llm_test_action{nullptr};
     QAction* consistency_pass_action{nullptr};
     QActionGroup* language_group{nullptr};
     QAction* english_action{nullptr};
@@ -426,6 +445,7 @@ private:
     ResultsCoordinator results_coordinator;
     UndoManager undo_manager_;
     bool development_mode_{false};
+    bool test_mode_{false};
     bool development_prompt_logging_enabled_{false};
 
     FileScanOptions file_scan_options{FileScanOptions::None};

@@ -559,6 +559,7 @@ UiTranslator::Dependencies MainAppUiBuilder::build_translator_dependencies(MainA
             app.plugins_menu,
             app.development_menu,
             app.development_settings_menu,
+            app.test_menu,
             app.language_menu,
             app.category_language_menu,
             app.help_menu},
@@ -577,6 +578,7 @@ UiTranslator::Dependencies MainAppUiBuilder::build_translator_dependencies(MainA
             app.reset_learning_action,
             app.clear_cache_action,
             app.development_prompt_logging_action,
+            app.run_large_whitelist_llm_test_action,
             app.consistency_pass_action,
             app.english_action,
             app.dutch_action,
@@ -637,6 +639,9 @@ void MainAppUiBuilder::build_menus(MainApp& app) {
     if (app.is_development_mode()) {
         build_plugins_menu(app);
         build_development_menu(app);
+    }
+    if (app.is_test_mode()) {
+        build_test_menu(app);
     }
     build_help_menu(app);
 }
@@ -828,6 +833,17 @@ void MainAppUiBuilder::build_development_menu(MainApp& app) {
     app.development_prompt_logging_action->setCheckable(true);
     app.development_prompt_logging_action->setChecked(app.development_prompt_logging_enabled_);
     QObject::connect(app.development_prompt_logging_action, &QAction::toggled, &app, &MainApp::handle_development_prompt_logging);
+}
+
+void MainAppUiBuilder::build_test_menu(MainApp& app) {
+    app.test_menu = app.menuBar()->addMenu(QString());
+    app.run_large_whitelist_llm_test_action = app.test_menu->addAction(
+        icon_for(app, "system-run", QStyle::SP_MediaPlay),
+        QString());
+    QObject::connect(app.run_large_whitelist_llm_test_action,
+                     &QAction::triggered,
+                     &app,
+                     &MainApp::run_large_whitelist_llm_test);
 }
 
 void MainAppUiBuilder::build_help_menu(MainApp& app) {

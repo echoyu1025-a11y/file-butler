@@ -1,4 +1,5 @@
 #include "AppInfo.hpp"
+#include "AppTestRunner.hpp"
 #include "EmbeddedEnv.hpp"
 #include "GgmlRuntimePaths.hpp"
 #include "Logger.hpp"
@@ -12,6 +13,7 @@
 #include <app_version.hpp>
 
 #include <QApplication>
+#include <QCoreApplication>
 #include <QDialog>
 #include <QGuiApplication>
 #include <QSplashScreen>
@@ -65,8 +67,10 @@ namespace {
 
 struct ParsedArguments {
     bool development_mode{false};
+    bool test_mode{false};
     bool console_log{false};
     bool force_direct_run{false};
+    std::optional<std::string> self_test_suite;
     UpdaterLiveTestConfig updater_live_test;
     std::vector<char*> qt_args;
 };
@@ -143,6 +147,10 @@ ParsedArguments parse_command_line(int argc, char** argv)
             parsed.development_mode = true;
             continue;
         }
+        if (is_flag && std::strcmp(argv[i], "--test") == 0) {
+            parsed.test_mode = true;
+            continue;
+        }
         if (is_flag && std::strcmp(argv[i], "--allow-direct-launch") == 0) {
             continue;
         }
@@ -152,6 +160,16 @@ ParsedArguments parse_command_line(int argc, char** argv)
         }
         if (is_flag && std::strcmp(argv[i], "--force-direct-run") == 0) {
             parsed.force_direct_run = true;
+            continue;
+        }
+        if (is_flag && std::strcmp(argv[i], "--self-test") == 0) {
+            parsed.self_test_suite = "all";
+            continue;
+        }
+        if (is_flag && consume_prefixed_value(argv[i], "--self-test=", parsed.self_test_suite)) {
+            if (parsed.self_test_suite->empty()) {
+                parsed.self_test_suite = "all";
+            }
             continue;
         }
         if (is_flag && std::strcmp(argv[i], UpdaterLaunchOptions::kLiveTestFlag) == 0) {
@@ -480,17 +498,44 @@ void activate_widget(QWidget* widget)
 #endif
 }
 
+void print_app_test_result(const AppTestRunner::Result& result)
+{
+    std::cout << "AI File Sorter self-test suite: " << result.suite << "\n";
+    if (!result.error.empty()) {
+        std::cout << "ERROR: " << result.error << "\n";
+        return;
+    }
+
+    for (const auto& test_case : result.cases) {
+        std::cout << (test_case.passed ? "[PASS] " : "[FAIL] ")
+                  << test_case.name;
+        if (!test_case.message.empty()) {
+            std::cout << " - " << test_case.message;
+        }
+        std::cout << "\n";
+    }
+    std::cout << (result.passed() ? "Self-test result: PASS" : "Self-test result: FAIL")
+              << "\n";
+}
+
+int run_self_test_mode(const ParsedArguments& parsed_args)
+{
+    int qt_argc = static_cast<int>(parsed_args.qt_args.size()) - 1;
+    char** qt_argv = const_cast<char**>(parsed_args.qt_args.data());
+    QCoreApplication app(qt_argc, qt_argv);
+
+    AppTestRunner runner;
+    AppTestRunner::Options options;
+    options.suite = parsed_args.self_test_suite.value_or("all");
+    const auto result = runner.run(options);
+    print_app_test_result(result);
+    return result.passed() ? EXIT_SUCCESS : EXIT_FAILURE;
+}
+
 int run_application(const ParsedArguments& parsed_args)
 {
     EmbeddedEnv env_loader(":/net/quicknode/AIFileSorter/.env");
     env_loader.load_env();
-    auto updater_live_test = parsed_args.updater_live_test;
-    if (UpdaterBuildConfig::update_checks_enabled()) {
-        load_missing_values_from_live_test_ini(
-            updater_live_test,
-            Utils::utf8_to_path(Utils::get_executable_path()));
-        apply_updater_live_test_environment(updater_live_test);
-    }
 #if defined(__APPLE__)
     ensure_ggml_backend_dir();
 #endif
@@ -502,10 +547,25 @@ int run_application(const ParsedArguments& parsed_args)
     QCoreApplication::setApplicationName(display_name);
     QGuiApplication::setApplicationDisplayName(display_name);
 
+    if (parsed_args.self_test_suite) {
+        return run_self_test_mode(parsed_args);
+    }
+
+    auto updater_live_test = parsed_args.updater_live_test;
+    if (!parsed_args.test_mode && UpdaterBuildConfig::update_checks_enabled()) {
+        load_missing_values_from_live_test_ini(
+            updater_live_test,
+            Utils::utf8_to_path(Utils::get_executable_path()));
+        apply_updater_live_test_environment(updater_live_test);
+    }
+
     int qt_argc = static_cast<int>(parsed_args.qt_args.size()) - 1;
     char** qt_argv = const_cast<char**>(parsed_args.qt_args.data());
     QApplication app(qt_argc, qt_argv);
-    SingleInstanceCoordinator instance_guard(QStringLiteral("net.quicknode.AIFileSorter"));
+    const QString instance_id = parsed_args.test_mode
+        ? QStringLiteral("net.quicknode.AIFileSorter.Test")
+        : QStringLiteral("net.quicknode.AIFileSorter");
+    SingleInstanceCoordinator instance_guard(instance_id);
     instance_guard.set_activation_callback([]() {
         activate_widget(preferred_activation_target());
     });
@@ -515,6 +575,12 @@ int run_application(const ParsedArguments& parsed_args)
 
     Settings settings;
     settings.load();
+    std::string app_data_dir;
+    if (parsed_args.test_mode) {
+        const auto profile_dir = Utils::utf8_to_path(settings.get_config_dir()) / "test_mode_profile";
+        std::filesystem::create_directories(profile_dir);
+        app_data_dir = Utils::path_to_utf8(profile_dir);
+    }
 
     const auto finish_splash = [&]() {};
 
@@ -522,7 +588,10 @@ int run_application(const ParsedArguments& parsed_args)
         return EXIT_SUCCESS;
     }
 
-    MainApp main_app(settings, parsed_args.development_mode);
+    MainApp main_app(settings,
+                     parsed_args.development_mode || parsed_args.test_mode,
+                     parsed_args.test_mode,
+                     app_data_dir);
     main_app.run();
 
     const int result = app.exec();

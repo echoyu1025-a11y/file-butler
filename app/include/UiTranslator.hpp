@@ -75,6 +75,7 @@ public:
         QMenu*& plugins_menu;
         QMenu*& development_menu;
         QMenu*& development_settings_menu;
+        QMenu*& test_menu;
         QMenu*& language_menu;
         QMenu*& category_language_menu;
         QMenu*& help_menu;
@@ -98,6 +99,7 @@ public:
         QAction*& reset_learning_action;
         QAction*& clear_cache_action;
         QAction*& development_prompt_logging_action;
+        QAction*& run_large_whitelist_llm_test_action;
         QAction*& consistency_pass_action;
         QAction*& english_action;
         QAction*& dutch_action;

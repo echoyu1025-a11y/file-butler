@@ -48,6 +48,16 @@ QAction* MainAppTestAccess::manage_storage_plugins_action(MainApp& app)
     return app.manage_storage_plugins_action;
 }
 
+QMenu* MainAppTestAccess::test_menu(MainApp& app)
+{
+    return app.test_menu;
+}
+
+QAction* MainAppTestAccess::run_large_whitelist_llm_test_action(MainApp& app)
+{
+    return app.run_large_whitelist_llm_test_action;
+}
+
 QCheckBox* MainAppTestAccess::categorize_files_checkbox(MainApp& app) {
     return app.categorize_files_checkbox;
 }

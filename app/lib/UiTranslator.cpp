@@ -209,6 +209,7 @@ void UiTranslator::translate_menus_and_actions() const
         {deps_.menus.plugins_menu, "&Plugins"},
         {deps_.menus.development_menu, "&Development"},
         {deps_.menus.development_settings_menu, "&Settings"},
+        {deps_.menus.test_menu, "&Tests"},
         {deps_.menus.language_menu, "Interface &language"},
         {deps_.menus.category_language_menu, "Category &language"}
     };
@@ -239,6 +240,7 @@ void UiTranslator::translate_menus_and_actions() const
         {deps_.actions.reset_learning_action, "Reset learned behavior…"},
         {deps_.actions.clear_cache_action, "Clear cache…"},
         {deps_.actions.development_prompt_logging_action, "Log prompts and responses to stdout"},
+        {deps_.actions.run_large_whitelist_llm_test_action, "Run large whitelist LLM test…"},
         {deps_.actions.consistency_pass_action, "Run &consistency pass"},
         {deps_.actions.english_action, "&English"},
         {deps_.actions.dutch_action, "&Dutch"},

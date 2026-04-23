@@ -30,6 +30,7 @@
 #include "StoragePluginManager.hpp"
 #include "WhitelistManagerDialog.hpp"
 #include "UndoManager.hpp"
+#include "WhitelistTestFixtures.hpp"
 #include "ggml-backend.h"
 
 #include <QAction>
@@ -403,25 +404,47 @@ QString display_name_for_detection_source(const std::string& detection_source)
     return QString::fromStdString(detection_source);
 }
 
+std::string resolve_runtime_data_dir(Settings& settings, std::string app_data_dir)
+{
+    std::string resolved = app_data_dir.empty() ? settings.get_config_dir() : std::move(app_data_dir);
+    if (!resolved.empty()) {
+        std::error_code ec;
+        std::filesystem::create_directories(Utils::utf8_to_path(resolved), ec);
+        if (ec) {
+            throw std::runtime_error(fmt::format(
+                "Could not create app data directory '{}': {}",
+                resolved,
+                ec.message()));
+        }
+    }
+    return resolved;
+}
+
 } // namespace
 
-MainApp::MainApp(Settings& settings, bool development_mode, QWidget* parent)
+MainApp::MainApp(Settings& settings,
+                 bool development_mode,
+                 bool test_mode,
+                 std::string app_data_dir,
+                 QWidget* parent)
     : QMainWindow(parent),
       settings(settings),
-      db_manager(settings.get_config_dir()),
-      user_learning_store_(settings.get_config_dir()),
+      runtime_data_dir_(resolve_runtime_data_dir(settings, std::move(app_data_dir))),
+      db_manager(runtime_data_dir_),
+      user_learning_store_(runtime_data_dir_),
       core_logger(Logger::get_logger("core_logger")),
       ui_logger(Logger::get_logger("ui_logger")),
-      whitelist_store(settings.get_config_dir()),
-      storage_plugin_manager_(std::make_shared<StoragePluginManager>(settings.get_config_dir())),
-      storage_plugin_loader_(StoragePluginManager::manifest_directory_for_config_dir(settings.get_config_dir())),
+      whitelist_store(runtime_data_dir_),
+      storage_plugin_manager_(std::make_shared<StoragePluginManager>(runtime_data_dir_)),
+      storage_plugin_loader_(StoragePluginManager::manifest_directory_for_config_dir(runtime_data_dir_)),
       categorization_service(settings, db_manager, core_logger, &user_learning_store_),
       consistency_pass_service(db_manager, core_logger),
       storage_provider_registry_(),
       active_storage_provider_(std::make_shared<LocalFsProvider>()),
       results_coordinator(*active_storage_provider_),
-      undo_manager_(settings.get_config_dir() + "/undo", &storage_provider_registry_),
+      undo_manager_(runtime_data_dir_ + "/undo", &storage_provider_registry_),
       development_mode_(development_mode),
+      test_mode_(test_mode),
       development_prompt_logging_enabled_(development_mode ? settings.get_development_prompt_logging() : false),
       main_window_state_binder_(std::make_unique<MainWindowStateBinder>(*this))
 {
@@ -444,7 +467,9 @@ MainApp::MainApp(Settings& settings, bool development_mode, QWidget* parent)
     connect_signals();
     connect_edit_actions();
 #if !defined(AI_FILE_SORTER_TEST_BUILD)
-    start_updater();
+    if (!test_mode_) {
+        start_updater();
+    }
 #endif
     load_settings();
     refresh_backend_status_label();
@@ -690,6 +715,9 @@ void MainApp::load_settings()
 
 void MainApp::save_settings()
 {
+    if (test_mode_) {
+        return;
+    }
     sync_ui_to_settings();
     settings.save();
 }
@@ -757,6 +785,9 @@ void MainApp::update_settings_action_states()
     }
     if (clear_cache_action) {
         clear_cache_action->setEnabled(!analysis_in_progress_);
+    }
+    if (run_large_whitelist_llm_test_action) {
+        run_large_whitelist_llm_test_action->setEnabled(!analysis_in_progress_);
     }
 }
 
@@ -1440,6 +1471,9 @@ void MainApp::show_storage_plugin_dialog()
 
 void MainApp::record_categorized_metrics(int count)
 {
+    if (test_mode_) {
+        return;
+    }
     record_categorized_metrics_impl(
         settings,
         donation_prompt_active_,
@@ -1896,6 +1930,85 @@ void MainApp::handle_development_prompt_logging(bool checked)
     apply_development_logging();
 }
 
+void MainApp::run_large_whitelist_llm_test()
+{
+    if (!test_mode_) {
+        return;
+    }
+    if (analysis_in_progress_ || analyze_thread.joinable()) {
+        QMessageBox::information(this,
+                                 tr("Test mode"),
+                                 tr("An analysis is already running. Stop it before starting a test preset."));
+        return;
+    }
+
+    const auto preset = WhitelistTestFixtures::large_whitelist_preset();
+    const auto sample_dir = Utils::utf8_to_path(runtime_data_dir_) /
+                            "large_whitelist_llm_samples";
+
+    try {
+        WhitelistTestFixtures::write_sample_files(sample_dir, preset);
+    } catch (const std::exception& ex) {
+        show_error_dialog(fmt::format("Could not prepare the large whitelist test preset: {}", ex.what()));
+        return;
+    }
+
+    QString expected;
+    for (const auto& sample : preset.files) {
+        expected += QStringLiteral("- %1 -> %2\n")
+                        .arg(QString::fromStdString(sample.file_name),
+                             QString::fromStdString(sample.expected_category));
+    }
+
+    QMessageBox confirm(this);
+    confirm.setIcon(QMessageBox::Question);
+    confirm.setWindowTitle(tr("Run large whitelist LLM test?"));
+    confirm.setText(tr("This will configure a temporary large whitelist, create sample files, "
+                       "and run the normal analysis flow with the currently selected real LLM."));
+    confirm.setInformativeText(tr("Previous cached results for this sample folder will be cleared so the "
+                                  "LLM is called again.\n\nThe sample folder is:\n%1\n\nExpected broad categories:\n%2")
+                                   .arg(QString::fromStdString(Utils::path_to_utf8(sample_dir)),
+                                        expected.trimmed()));
+    QPushButton* run_button = confirm.addButton(tr("Run test"), QMessageBox::AcceptRole);
+    confirm.addButton(QMessageBox::Cancel);
+    confirm.exec();
+    if (confirm.clickedButton() != run_button) {
+        return;
+    }
+
+    whitelist_store.set(preset.whitelist_name,
+                        WhitelistEntry{preset.categories, preset.subcategories});
+    settings.set_active_whitelist(preset.whitelist_name);
+    settings.set_allowed_categories(preset.categories);
+    settings.set_allowed_subcategories(preset.subcategories);
+    settings.set_use_whitelist(true);
+    settings.set_use_subcategories(true);
+    settings.set_use_consistency_hints(false);
+    settings.set_categorize_files(true);
+    settings.set_categorize_directories(false);
+    settings.set_include_subdirectories(false);
+    settings.set_analyze_images_by_content(false);
+    settings.set_process_images_only(false);
+    settings.set_offer_rename_images(false);
+    settings.set_rename_images_only(false);
+    settings.set_analyze_documents_by_content(false);
+    settings.set_process_documents_only(false);
+    settings.set_offer_rename_documents(false);
+    settings.set_rename_documents_only(false);
+    settings.set_sort_folder(Utils::path_to_utf8(sample_dir));
+
+    const std::string sample_dir_text = Utils::path_to_utf8(sample_dir);
+    if (!db_manager.clear_directory_categorizations(sample_dir_text, true)) {
+        show_error_dialog("Could not clear previous cached results for the large whitelist test preset.");
+        return;
+    }
+
+    sync_settings_to_ui();
+    on_directory_selected(QString::fromStdString(sample_dir_text), false);
+    statusBar()->showMessage(tr("Running large whitelist LLM test…"), 4000);
+    on_analyze_clicked();
+}
+
 void MainApp::request_stop_analysis()
 {
     stop_analysis = true;
@@ -2284,7 +2397,7 @@ void MainApp::show_results_dialog(const std::vector<CategorizedFile>& results)
 {
     try {
         const bool show_subcategory = use_subcategories_checkbox->isChecked();
-        const std::string undo_dir = settings.get_config_dir() + "/undo";
+        const std::string undo_dir = runtime_data_dir_ + "/undo";
         categorization_dialog = std::make_unique<CategorizationDialog>(&db_manager,
                                                                        *active_storage_provider_,
                                                                        show_subcategory,
