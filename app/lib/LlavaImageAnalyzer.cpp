@@ -321,6 +321,16 @@ int32_t resolve_default_visual_batch_size(bool gpu_enabled, std::string_view bac
 #endif
 }
 
+int32_t resolve_visual_batch_size(bool gpu_enabled,
+                                  std::string_view backend_name,
+                                  int32_t max_batch_size) {
+    const int32_t default_batch_size = resolve_default_visual_batch_size(gpu_enabled, backend_name);
+    if (max_batch_size > 0 && default_batch_size > max_batch_size) {
+        return max_batch_size;
+    }
+    return default_batch_size;
+}
+
 llama_model_params build_visual_model_params_for_path(
     const std::string& model_path,
     const std::shared_ptr<spdlog::logger>& logger) {
@@ -600,6 +610,12 @@ int32_t default_visual_batch_size(bool gpu_enabled, std::string_view backend_nam
     return resolve_default_visual_batch_size(gpu_enabled, backend_name);
 }
 
+int32_t visual_batch_size(bool gpu_enabled,
+                          std::string_view backend_name,
+                          int32_t max_batch_size) {
+    return resolve_visual_batch_size(gpu_enabled, backend_name, max_batch_size);
+}
+
 int32_t visual_model_n_gpu_layers_for_model(const std::string& model_path) {
     return build_visual_model_params_for_path(model_path, nullptr).n_gpu_layers;
 }
@@ -692,7 +708,16 @@ LlavaImageAnalyzer::LlavaImageAnalyzer(const std::filesystem::path& model_path,
     }
     text_gpu_enabled_ = settings_.use_gpu && model_params.n_gpu_layers != 0;
     context_tokens_ = settings_.n_ctx;
-    batch_size_ = resolve_default_visual_batch_size(text_gpu_enabled_, backend_name);
+    const int32_t default_batch_size =
+        resolve_default_visual_batch_size(text_gpu_enabled_, backend_name);
+    batch_size_ =
+        resolve_visual_batch_size(text_gpu_enabled_, backend_name, settings_.max_batch_size);
+    if (batch_size_ < default_batch_size) {
+        if (logger) {
+            logger->info("Capping visual batch size at {} for selected backend.",
+                         settings_.max_batch_size);
+        }
+    }
     model_ = llama_model_load_from_file(model_path_utf8.c_str(), model_params);
     if (!model_) {
         throw std::runtime_error("Failed to load visual text model at " + model_path_utf8);
@@ -709,6 +734,13 @@ LlavaImageAnalyzer::LlavaImageAnalyzer(const std::filesystem::path& model_path,
     mtmd_context_params mm_params = mtmd_context_params_default();
     mm_params.use_gpu = mmproj_gpu_enabled_;
     mm_params.n_threads = settings_.n_threads;
+    if (settings_.image_max_tokens > 0) {
+        if (logger) {
+            logger->info("Capping visual image tokens at {} for selected backend.",
+                         settings_.image_max_tokens);
+        }
+        mm_params.image_max_tokens = settings_.image_max_tokens;
+    }
     vision_ctx_ = mtmd_init_from_file(mmproj_path_utf8.c_str(), model_, mm_params);
     if (!vision_ctx_) {
         cleanup();

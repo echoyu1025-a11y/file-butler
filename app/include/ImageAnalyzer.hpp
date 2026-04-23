@@ -83,6 +83,10 @@ struct ImageAnalyzerSettings {
     float temperature = 0.2f;
     /** @brief Whether to use GPU acceleration. */
     bool use_gpu = true;
+    /** @brief Maximum image tokens for dynamic-resolution visual encoders (0 = backend default). */
+    int32_t image_max_tokens = 0;
+    /** @brief Maximum evaluation batch size for visual chunks (0 = runtime default). */
+    int32_t max_batch_size = 0;
     /** @brief Enable verbose visual model logging. */
     bool log_visual_output = false;
     /**

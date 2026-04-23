@@ -180,6 +180,16 @@ private:
 #ifdef AI_FILE_SORTER_TEST_BUILD
 namespace LlavaImageAnalyzerTestAccess {
 int32_t default_visual_batch_size(bool gpu_enabled, std::string_view backend_name);
+/**
+ * @brief Resolves the effective visual batch size after applying a backend cap.
+ * @param gpu_enabled Whether the text model uses GPU acceleration.
+ * @param backend_name Active backend name.
+ * @param max_batch_size Maximum allowed batch size (0 = no cap).
+ * @return Effective batch size.
+ */
+int32_t visual_batch_size(bool gpu_enabled,
+                          std::string_view backend_name,
+                          int32_t max_batch_size);
 int32_t visual_model_n_gpu_layers_for_model(const std::string& model_path);
 /**
  * @brief Evaluates whether a visual projector should remain on GPU for the given free memory.

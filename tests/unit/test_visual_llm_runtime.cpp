@@ -41,6 +41,8 @@ TEST_CASE("Default visual model descriptor exposes the MTMD backend catalog") {
     REQUIRE(vicuna != nullptr);
     CHECK(std::string(vicuna->display_name) == "LLaVA 1.6 Vicuna 7B");
     CHECK(vicuna->prompt_policy == VisualPromptPolicy::LegacyLlava);
+    CHECK(vicuna->runtime_hints.image_max_tokens == 1536);
+    CHECK(vicuna->runtime_hints.max_batch_size == 256);
     REQUIRE(vicuna->artifacts.size() == 2);
     CHECK(std::string(vicuna->artifacts[0].url_env) == "LLAVA_VICUNA_MODEL_URL");
     CHECK(std::string(vicuna->artifacts[1].url_env) == "LLAVA_VICUNA_MMPROJ_URL");

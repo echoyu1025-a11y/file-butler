@@ -31,6 +31,19 @@ TEST_CASE("LlavaImageAnalyzer uses conservative default visual batch sizing") {
 #endif
 }
 
+TEST_CASE("LlavaImageAnalyzer applies backend visual batch caps") {
+#if defined(_WIN32)
+    constexpr int32_t expected_cuda_default = 512;
+#else
+    constexpr int32_t expected_cuda_default = 768;
+#endif
+    CHECK(LlavaImageAnalyzerTestAccess::visual_batch_size(
+              true, "cuda", 0) == expected_cuda_default);
+    CHECK(LlavaImageAnalyzerTestAccess::visual_batch_size(true, "cuda", 256) == 256);
+    CHECK(LlavaImageAnalyzerTestAccess::visual_batch_size(false, "cuda", 768) == 512);
+    CHECK(LlavaImageAnalyzerTestAccess::visual_batch_size(true, "metal", 2048) == 1024);
+}
+
 TEST_CASE("LlavaImageAnalyzer keeps guarded visual projectors on CPU when headroom is tight") {
     constexpr std::uintmax_t mmproj_size = 624451168ULL;
     constexpr size_t tight_free = 1024ULL * 1024ULL * 1024ULL;

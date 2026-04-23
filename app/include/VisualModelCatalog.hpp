@@ -4,6 +4,7 @@
  */
 #pragma once
 
+#include <cstdint>
 #include <filesystem>
 #include <optional>
 #include <string_view>
@@ -51,6 +52,16 @@ struct VisualModelArtifactDescriptor {
 };
 
 /**
+ * @brief Optional runtime limits for a visual model backend.
+ */
+struct VisualModelRuntimeHints {
+    /** @brief Maximum image tokens to request from dynamic-resolution projectors (0 = backend default). */
+    int32_t image_max_tokens = 0;
+    /** @brief Maximum visual evaluation batch size (0 = runtime default). */
+    int32_t max_batch_size = 0;
+};
+
+/**
  * @brief Descriptor for a supported visual model backend.
  */
 struct VisualModelDescriptor {
@@ -64,6 +75,8 @@ struct VisualModelDescriptor {
     VisualPromptPolicy prompt_policy;
     /** @brief Required artifacts for the backend. */
     std::vector<VisualModelArtifactDescriptor> artifacts;
+    /** @brief Optional backend-specific runtime limits. */
+    VisualModelRuntimeHints runtime_hints;
 };
 
 /**

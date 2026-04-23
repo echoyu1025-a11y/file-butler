@@ -496,8 +496,8 @@ Run: `./build-tests/ai_file_sorter_tests "Visual dialog accepts the legacy LLaVA
 #### Test case: Default visual model descriptor exposes the MTMD backend catalog
 Purpose: Verify the built-in visual model catalog exposes the expected default backend descriptor and the alternate backend entries used by the selector UI.
 Setup: Load the default visual model descriptor from the catalog.
-Procedure: Inspect the backend id, display name, architecture, prompt policy, required artifact env vars, and the presence of the alternate Vicuna and Gemma backend descriptors.
-Expected outcome: The default backend resolves to the Gemma descriptor with separate model and mmproj artifact entries and the structured multimodal prompt policy, while the catalog also exposes both `llava-v1.6-mistral-7b` and `llava-v1.6-vicuna-7b` as alternate entries.
+Procedure: Inspect the backend id, display name, architecture, prompt policy, required artifact env vars, runtime hints, and the presence of the alternate Vicuna and Gemma backend descriptors.
+Expected outcome: The default backend resolves to the Gemma descriptor with separate model and mmproj artifact entries and the structured multimodal prompt policy, while the catalog also exposes both `llava-v1.6-mistral-7b` and `llava-v1.6-vicuna-7b` as alternate entries; Vicuna includes conservative visual runtime hints.
 Run: `./build-tests/ai_file_sorter_tests "Default visual model descriptor exposes the MTMD backend catalog"`
 
 #### Test case: VisualLlmRuntime resolves the active backend through descriptor artifacts
@@ -559,6 +559,13 @@ Expected outcome: The reloaded settings still report `gemma-3-4b-it`.
 Run: `./build-tests/ai_file_sorter_tests "Settings persists selected visual model backend"`
 
 ### `tests/unit/test_llava_image_analyzer.cpp`
+
+#### Test case: LlavaImageAnalyzer applies backend visual batch caps
+Purpose: Ensure backend runtime hints can cap the effective visual evaluation batch size without changing unbounded defaults.
+Setup: Use the visual analyzer test access helper with CUDA, CPU, and Metal-style backend inputs.
+Procedure: Compare uncapped defaults, a capped CUDA value, CPU behavior, and a cap above the Metal default.
+Expected outcome: A positive cap below the default lowers the batch size; zero or high caps leave the backend default unchanged.
+Run: `./build-tests/ai_file_sorter_tests "LlavaImageAnalyzer applies backend visual batch caps"`
 
 #### Test case: LlavaImageAnalyzer keeps guarded visual projectors on CPU when headroom is tight
 Purpose: Verify CUDA and Vulkan visual projector GPU use is gated by available memory headroom.

@@ -28,6 +28,12 @@ std::unique_ptr<ImageAnalyzer> ImageAnalyzerFactory::create(const VisualLlmRunti
 
     switch (backend.descriptor->architecture) {
     case VisualModelArchitecture::MtmdProjector: {
+        if (settings.image_max_tokens <= 0) {
+            settings.image_max_tokens = backend.descriptor->runtime_hints.image_max_tokens;
+        }
+        if (settings.max_batch_size <= 0) {
+            settings.max_batch_size = backend.descriptor->runtime_hints.max_batch_size;
+        }
         const auto model_path =
             require_artifact_path(backend, VisualModelArtifactKind::Model, "model");
         const auto mmproj_path =
