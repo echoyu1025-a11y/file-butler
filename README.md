@@ -27,16 +27,16 @@ AI File Sorter is a cross-platform desktop application that uses AI to organize 
   <img src="images/screenshots/before-after/aifs_before_after_v.png" alt="AI File Sorter before and after organization example" width="600">
 </p>
 
-The app can analyze picture files locally and suggest meaningful, human-readable names. For example, a generic file like IMG_2048.jpg can be renamed to something descriptive such as clouds_over_lake.jpg. It can also analyze supported document files and propose clearer names based on their text content. AI File Sorter can also clean up messy audio and video filenames by using the metadata already stored inside supported media files. If tags such as year, artist, album, or title are available, the app can turn them into a clear suggestion like `2024_artist_album_title.mp3`, which you can review, edit, or ignore before any change is applied.
+The app can analyze picture files locally with built-in visual LLM backends and suggest meaningful, human-readable names. For example, a generic file like IMG_2048.jpg can be renamed to something descriptive such as clouds_over_lake.jpg. It can also analyze supported document files and propose clearer names based on their text content. AI File Sorter can also clean up messy audio and video filenames by using the metadata already stored inside supported media files. If tags such as year, artist, album, or title are available, the app can turn them into a clear suggestion like `2024_artist_album_title.mp3`, which you can review, edit, or ignore before any change is applied.
 
 AI File Sorter helps tidy up cluttered folders such as Downloads, external drives, or NAS storage by automatically grouping files based on their names, extensions, folder context, taxonomy normalization, and cached categorization results.
 
-Instead of relying only on fixed rules, the app combines LLM output with taxonomy matching, optional whitelists, and consistency hints from the current session and recent cached assignments for similar file types. This helps keep labels more consistent over time, while still letting you review and adjust everything before anything is applied.
+Instead of relying only on fixed rules, the app combines LLM output with taxonomy matching, optional whitelists, consistency hints from the current session and recent cached assignments for similar file types, and locally approved review decisions when available. This helps keep labels more consistent over time, while still letting you review and adjust everything before anything is applied.
 
 Categories (and optional subcategories) are suggested for each file, and for supported file types, rename suggestions are provided as well. Once you confirm, the required folders are created automatically and files are sorted accordingly.
 
 Privacy-first by design:
-AI File Sorter can run entirely on your device, using local AI models such as Llama 3B (Q4) and Mistral 7B. No files, filenames, images, or metadata are uploaded anywhere, and no telemetry is sent. An internet connection is only needed if you explicitly choose to enable a remote model.
+AI File Sorter can run entirely on your device, using local text and visual models such as Gemma 3 4B IT and other supported GGUF backends. No files, filenames, images, or metadata are uploaded anywhere, and no telemetry is sent. An internet connection is only needed if you explicitly choose to enable a remote model.
 
 ---
 
@@ -77,12 +77,13 @@ AI File Sorter can run entirely on your device, using local AI models such as Ll
     - [Linux](#linux)
     - [macOS](#macos)
     - [Windows](#windows)
-  - [Categorization cache database](#categorization-cache-database)
+  - [Categorization cache and learned behavior](#categorization-cache-and-learned-behavior)
   - [Uninstallation](#uninstallation)
   - [Using your OpenAI API key](#using-your-openai-api-key)
   - [Using your Gemini API key](#using-your-gemini-api-key)
   - [Testing](#testing)
   - [Diagnostics](#diagnostics)
+  - [Help and onboarding](#help-and-onboarding)
   - [How to Use](#how-to-use)
   - [Sorting a Remote Directory (e.g., NAS)](#sorting-a-remote-directory-eg-nas)
   - [Contributing](#contributing)
@@ -97,11 +98,10 @@ AI File Sorter can run entirely on your device, using local AI models such as Ll
 ## [1.8.0] - 2026-04-23
 
 - Shows the active AI backend in the status bar.
-- Runs as a single instance to avoid duplicate app windows.
 - Improves launcher, GPU, and local model handling for better reliability.
 - Uses Gemma 3 4B IT as the default visual model.
 - Improves image categorization quality and category consistency, including for screenshots and UI captures.
-- Makes image analysis more stable and error messages clearer.
+- Makes image analysis more stable.
 - Lets you clear categorization and app caches from Settings.
 - Learns locally from your approved review decisions to improve future suggestions.
 - Includes localized Quick Start help and an FAQ link.
@@ -120,7 +120,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full history.
 - **Category whitelists**: Define named whitelists of allowed categories/subcategories, manage them under **Settings → Manage category whitelists…**, and toggle/select them in the main window when you want to constrain model output for a session.
 - **Multilingual categorization**: Have the LLM assign categories in Dutch, French, German, Italian, Polish, Portuguese, Spanish, or Turkish (model dependent).
 - **Custom local LLMs**: Register your own local GGUF models directly from the **Select LLM** dialog.
-- **Image content analysis (Visual LLM)**: Analyze supported picture files with LLaVA to produce descriptions and optional filename suggestions (rename-only mode supported).
+- **Image content analysis (Visual LLM)**: Analyze supported picture files with built-in visual backends such as the default Gemma 3 4B IT, with special handling for screenshots and UI captures so categories describe on-screen content more accurately (rename-only mode supported).
 - **Image date-to-category suffix (optional)**: Append image creation date metadata to image category names when available.
 - **Document content analysis (Text LLM)**: Analyze supported document files to summarize content and suggest filenames; uses the same selected LLM (local or remote).
 - **Audio/video metadata filename suggestions**: Turn embedded media tags into clean, library-style filenames for supported audio and video files, with full review before anything is renamed.
@@ -129,6 +129,8 @@ See [CHANGELOG.md](CHANGELOG.md) for the full history.
 - **Interface languages**: English, Dutch, French, German, Italian, Korean, Spanish, and Turkish.
 - **Cross-Platform Compatibility**: Works on Windows, macOS, and Linux.
 - **Local Database Caching**: Speeds up repeated categorization, preserves approved labels and rename suggestions, and provides recent-category hints for consistency.
+- **Local learning from approved reviews**: Approved category decisions can be stored locally and reused as hints for future runs without modifying the underlying model.
+- **Cache maintenance tools**: Use **Settings → Clear cache…** to inspect and clear categorization cache, image location cache, and logs, or **Settings → Reset learned behavior…** to remove the separate learned-review database.
 - **Sorting Preview**: See how files will be organized before confirming changes.
 - **Dry run** / preview-only mode to inspect planned moves without touching files.
 - **Persistent Undo** ("Undo last run") even after closing the sort dialog.
@@ -136,6 +138,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full history.
 - **Update Notifications**: Get notified about updates - with optional or required update flows.
 - **Storage plugin support**: Install provider-specific compatibility modes from the **Plugins** menu when the app detects supported cloud-backed folders.
 - **Dedicated OneDrive support**: Use the OneDrive plugin for stronger sync-aware handling than plain local-folder mode.
+- **In-app help**: Open the localized **Help → Quick Start Guide** for a guided walkthrough or **Help → FAQ** for troubleshooting and common questions.
 
 ---
 
@@ -158,9 +161,11 @@ See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
 ## Image analysis (Visual LLM)
 
-Image analysis uses a local MTMD-backed visual LLM to describe image contents and (optionally) suggest a better filename. This runs locally and does not require an API key.
+Image analysis uses local MTMD-backed visual LLM backends to describe image contents and (optionally) suggest a better filename. This runs locally and does not require an API key.
 
-The app currently exposes multiple built-in visual backends, including LLaVA 1.6 and Gemma 3 4B. In the current embedded runtime, all supported local visual backends still require two GGUF files: the main text model and a matching `mmproj` projector file.
+As of 1.8.0, **Gemma 3 4B IT** is the default visual backend. The app also gives screenshots, webpage captures, dashboards, forms, mockups, and other UI-like images extra prompt guidance so categories describe what is shown on screen instead of misclassifying the image as the software artifact itself.
+
+The app currently exposes multiple built-in visual backends, including the default Gemma 3 4B IT and LLaVA 1.6. In the current embedded runtime, all supported local visual backends still require two GGUF files: the main text model and a matching `mmproj` projector file.
 
 ### Required visual LLM files
 
@@ -811,9 +816,16 @@ Example PowerShell launch:
 
 ---
 
-## Categorization cache database
+## Categorization cache and learned behavior
 
-AI File Sorter stores categorization results in a local SQLite database next to `config.ini` (the base directory can be overridden via `AI_FILE_SORTER_CONFIG_DIR`). This cache allows the app to skip already-processed files, preserve rename suggestions between runs, and reuse recent category/subcategory assignments as consistency hints.
+AI File Sorter keeps two separate kinds of local memory under the app config directory (the base directory can be overridden via `AI_FILE_SORTER_CONFIG_DIR`):
+
+- A **categorization cache** for faster reruns and consistency hints.
+- A separate **learned-behavior database** for category decisions you explicitly approve in the Review dialog.
+
+### Categorization cache
+
+AI File Sorter stores categorization results in a local SQLite database next to `config.ini`. This cache allows the app to skip already-processed files, preserve rename suggestions between runs, and reuse recent category/subcategory assignments as consistency hints.
 
 What is stored:
 
@@ -825,7 +837,25 @@ What is stored:
 
 This cache is used as lightweight memory for consistency, not as model training. In **More consistent** mode, the app can feed recent assignments for similar file types back into the prompt so labels trend toward the same taxonomy over time.
 
-If you rename or move a file from the Review dialog, the cache entry is updated to the new name. Already-renamed picture files are skipped for visual analysis and rename suggestions on later runs. In the Review dialog, those already-renamed rows are hidden when rename-only is enabled, but they stay visible when categorization is enabled so you can still move them into category folders. To reset a folder's cache, accept the recategorization prompt. To clear the full categorization cache, image-location cache, or logs, use **Settings -> Clear cache**. You can also delete the cache file directly (or point `CATEGORIZATION_CACHE_FILE` to a new filename).
+If you rename or move a file from the Review dialog, the cache entry is updated to the new name. Already-renamed picture files are skipped for visual analysis and rename suggestions on later runs. In the Review dialog, those already-renamed rows are hidden when rename-only is enabled, but they stay visible when categorization is enabled so you can still move them into category folders. To reset a folder's cache, accept the recategorization prompt. You can also delete the cache file directly (or point `CATEGORIZATION_CACHE_FILE` to a new filename).
+
+### Local learning from approved reviews
+
+When you approve categories in the Review dialog, the app can remember those local decisions and reuse them as hints for future runs. This helps stabilize similar folders over time, but it does **not** train or modify the underlying AI model.
+
+These learned examples are stored in a separate local database from the normal categorization cache. Clearing the categorization cache does **not** remove learned behavior.
+
+To remove learned review data, use **Settings → Reset learned behavior…**.
+
+### Cache maintenance tooling
+
+Use **Settings → Clear cache…** to inspect and clear the disposable maintenance data the app manages:
+
+- **Categorization cache**: Past file and folder categorization results.
+- **Image location cache**: Reverse-geocoded place names for photo GPS lookups.
+- **Logs**: Application log files used for troubleshooting and diagnostics.
+
+Downloaded models are managed separately in **Settings → Select LLM…** and are not removed by the cache cleanup dialog.
 
 ---
 
@@ -893,10 +923,20 @@ Each script collects relevant logs, redacts common sensitive paths, and packages
 
 ---
 
+## Help and onboarding
+
+If you want an in-app walkthrough before your first run, open **Help → Quick Start Guide**. The Quick Start guide is localized and covers the review flow, undo, local learning, and the most common settings you may want to change.
+
+If something looks wrong or you want troubleshooting tips, open **Help → FAQ**.
+
+---
+
 ## How to Use
 
 1. Launch the application (see the last step in [Installation](#installation) according your OS).
 2. Select a directory to analyze.
+
+If you want a guided walkthrough first, open **Help → Quick Start Guide**. For troubleshooting during setup or after a run, open **Help → FAQ**.
 
 ### Using dry run and undo
 
