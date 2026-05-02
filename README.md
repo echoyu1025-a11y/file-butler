@@ -180,7 +180,7 @@ Both files are required for the selected backend. If either one is missing, imag
 
 Image analysis adds six related checkboxes to the main window:
 
-- **Analyze picture files by content (can be slow)**: Runs the visual LLM on supported picture files and reports progress in the analysis dialog.
+- **Analyze picture files by content**: Runs the visual LLM on supported picture files and reports progress in the analysis dialog.
 - **Process picture files only (ignore any other files)**: Restricts the run to supported picture files and disables the categorization controls while active.
 - **Add image creation date (if available) to category name**: Appends `YYYY-MM-DD` from image metadata to the category label when available. Disabled when rename-only is enabled.
 - **Add photo date and place to filename (if available)**: Adds metadata-based date/place prefixes to suggested image filenames when available.
