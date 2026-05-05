@@ -1431,8 +1431,8 @@ TEST_CASE("CategorizationService uses separate main-category and subcategory pro
             calls,
             prompts,
             std::deque<std::string>{
-                "{\"main_category\":\"Documents\"}",
-                "{\"subcategory\":\"PCI DSS\"}"
+                "Documents",
+                "PCI DSS"
             });
     };
 
@@ -1453,10 +1453,10 @@ TEST_CASE("CategorizationService uses separate main-category and subcategory pro
     CHECK(categorized.front().canonical_subcategory == "PCI DSS");
     CHECK(*calls == 2);
     REQUIRE(prompts->size() == 2);
-    CHECK((*prompts)[0].find("{\"main_category\":\"...\"}") != std::string::npos);
+    CHECK((*prompts)[0].find("Return only one allowed main category label on a single line.") != std::string::npos);
     CHECK((*prompts)[0].find("Allowed main categories:") != std::string::npos);
     CHECK((*prompts)[0].find("Document summary: Quick reference to PCI DSS controls for merchants and service providers.") != std::string::npos);
-    CHECK((*prompts)[1].find("{\"subcategory\":\"...\"}") != std::string::npos);
+    CHECK((*prompts)[1].find("Return only the subcategory text on a single line.") != std::string::npos);
     CHECK((*prompts)[1].find("The main category is already fixed to: Documents") != std::string::npos);
     CHECK((*prompts)[1].find("Document categorization guidance:") != std::string::npos);
 }
@@ -1481,7 +1481,7 @@ TEST_CASE("CategorizationService keeps the selected main category when the subca
             calls,
             prompts,
             std::deque<std::string>{
-                "{\"main_category\":\"Software\"}",
+                "Software",
                 "Operating Systems : Version Control"
             });
     };
@@ -1501,6 +1501,92 @@ TEST_CASE("CategorizationService keeps the selected main category when the subca
     CHECK(*calls == 2);
     REQUIRE(prompts->size() == 2);
     CHECK((*prompts)[1].find("The main category is already fixed to: Software") != std::string::npos);
+    CHECK((*prompts)[1].find("Software and archive artifact guidance:") != std::string::npos);
+}
+
+TEST_CASE("CategorizationService falls back when the subcategory pass returns malformed JSON-like text") {
+    TempDir base_dir;
+    EnvVarGuard config_guard("AI_FILE_SORTER_CONFIG_DIR", base_dir.path().string());
+    Settings settings;
+    DatabaseManager db(settings.get_config_dir());
+    CategorizationService service(settings, db, nullptr);
+
+    TempDir data_dir;
+    const std::string file_name = "Git-2.50.0.2-64-bit.exe";
+    const std::string full_path = (data_dir.path() / file_name).string();
+    const std::vector<FileEntry> files = {FileEntry{full_path, file_name, FileType::File}};
+
+    std::atomic<bool> stop_flag{false};
+    auto calls = std::make_shared<int>(0);
+    auto prompts = std::make_shared<std::vector<std::string>>();
+    auto factory = [calls, prompts]() {
+        return std::make_unique<SequencedCompletionLLM>(
+            calls,
+            prompts,
+            std::deque<std::string>{
+                "Software",
+                "{ subcategory Software }",
+                "Software : Version Control"
+            });
+    };
+
+    const auto categorized = service.categorize_entries(files,
+                                                        true,
+                                                        stop_flag,
+                                                        {},
+                                                        {},
+                                                        {},
+                                                        {},
+                                                        factory);
+
+    REQUIRE(categorized.size() == 1);
+    CHECK(categorized.front().canonical_category == "Software");
+    CHECK(categorized.front().canonical_subcategory == "Version Control");
+    CHECK(*calls == 3);
+    REQUIRE(prompts->size() == 2);
+    CHECK((*prompts)[1].find("Return only the subcategory text on a single line.") != std::string::npos);
+}
+
+TEST_CASE("CategorizationService falls back when an artifact subcategory echoes another top-level family") {
+    TempDir base_dir;
+    EnvVarGuard config_guard("AI_FILE_SORTER_CONFIG_DIR", base_dir.path().string());
+    Settings settings;
+    DatabaseManager db(settings.get_config_dir());
+    CategorizationService service(settings, db, nullptr);
+
+    TempDir data_dir;
+    const std::string file_name = "581.57-desktop-win10-win11-64bit-international-nsd-dch-whql.exe";
+    const std::string full_path = (data_dir.path() / file_name).string();
+    const std::vector<FileEntry> files = {FileEntry{full_path, file_name, FileType::File}};
+
+    std::atomic<bool> stop_flag{false};
+    auto calls = std::make_shared<int>(0);
+    auto prompts = std::make_shared<std::vector<std::string>>();
+    auto factory = [calls, prompts]() {
+        return std::make_unique<SequencedCompletionLLM>(
+            calls,
+            prompts,
+            std::deque<std::string>{
+                "Drivers",
+                "{ subcategory Installers }",
+                "Drivers : Graphics Drivers"
+            });
+    };
+
+    const auto categorized = service.categorize_entries(files,
+                                                        true,
+                                                        stop_flag,
+                                                        {},
+                                                        {},
+                                                        {},
+                                                        {},
+                                                        factory);
+
+    REQUIRE(categorized.size() == 1);
+    CHECK(categorized.front().canonical_category == "Drivers");
+    CHECK(categorized.front().canonical_subcategory == "Graphics Drivers");
+    CHECK(*calls == 3);
+    REQUIRE(prompts->size() == 2);
 }
 
 TEST_CASE("CategorizationService normalizes supported image main categories to Images") {

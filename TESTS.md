@@ -1446,17 +1446,31 @@ Run: `./build-tests/ai_file_sorter_tests "CategorizationService uses a broader f
 
 #### Test case: CategorizationService uses separate main-category and subcategory prompts for document files
 Purpose: Ensure the service now selects the broad document family separately from the specific subject-matter label.
-Setup: Prepare a summarized `.pdf` prompt override and a sequenced LLM stub that first returns `{"main_category":"Documents"}` and then `{"subcategory":"PCI DSS"}`.
+Setup: Prepare a summarized `.pdf` prompt override and a sequenced LLM stub that first returns `Documents` and then `PCI DSS`.
 Procedure: Categorize the file through the service and capture both completion prompts.
-Expected outcome: The first prompt asks only for a JSON main-category label, the second prompt fixes the main category to `Documents`, and the final categorization is `Documents : PCI DSS`.
+Expected outcome: The first prompt asks for only one allowed main-category label on a single line, the second prompt fixes the main category to `Documents` and asks for only the subcategory text, and the final categorization is `Documents : PCI DSS`.
 Run: `./build-tests/ai_file_sorter_tests "CategorizationService uses separate main-category and subcategory prompts for document files"`
 
 #### Test case: CategorizationService keeps the selected main category when the subcategory pass echoes another one
 Purpose: Prevent the second pass from drifting back into main-category selection after the first pass already chose a stable root.
-Setup: Prepare a software-like file and a sequenced LLM stub that returns `{"main_category":"Software"}` first and a mismatched pair `Operating Systems : Version Control` second.
+Setup: Prepare a software-like file and a sequenced LLM stub that returns `Software` first and a mismatched pair `Operating Systems : Version Control` second.
 Procedure: Categorize the file through the service.
 Expected outcome: The final categorization keeps `Software` as the main category and uses only `Version Control` as the subcategory.
 Run: `./build-tests/ai_file_sorter_tests "CategorizationService keeps the selected main category when the subcategory pass echoes another one"`
+
+#### Test case: CategorizationService falls back when the subcategory pass returns malformed JSON-like text
+Purpose: Prevent split-pass prompt formatting glitches from leaking literal wrapper text like `{ subcategory Software }` into cached category labels.
+Setup: Prepare a software-like file and a sequenced LLM stub that returns `Software`, then `{ subcategory Software }`, then a one-shot fallback response `Software : Version Control`.
+Procedure: Categorize the file through the service and inspect the final canonical labels and call count.
+Expected outcome: The malformed split-pass subcategory is rejected, the service falls back to one-shot categorization, and the final result is `Software : Version Control`.
+Run: `./build-tests/ai_file_sorter_tests "CategorizationService falls back when the subcategory pass returns malformed JSON-like text"`
+
+#### Test case: CategorizationService falls back when an artifact subcategory echoes another top-level family
+Purpose: Prevent software-artifact split responses like `{ subcategory Installers }` from collapsing driver or software files into generic artifact subcategories.
+Setup: Prepare a driver installer filename and a sequenced LLM stub that returns `Drivers`, then `{ subcategory Installers }`, then a one-shot fallback response `Drivers : Graphics Drivers`.
+Procedure: Categorize the file through the service and inspect the final canonical labels and call count.
+Expected outcome: The generic artifact-family subcategory is rejected, the service falls back to one-shot categorization, and the final result is `Drivers : Graphics Drivers`.
+Run: `./build-tests/ai_file_sorter_tests "CategorizationService falls back when an artifact subcategory echoes another top-level family"`
 
 #### Test case: CategorizationService normalizes supported image main categories to Images
 Purpose: Prevent supported image files from fragmenting across topical main categories such as `Wildlife`, `Paris_Skyline`, or screenshot subject headings.
