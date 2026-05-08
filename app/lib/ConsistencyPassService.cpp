@@ -23,6 +23,8 @@
 #include <unordered_map>
 
 namespace {
+constexpr int kConsistencyPassCompletionTokens = 512;
+constexpr std::size_t kConsistencyPassChunkSize = 10;
 
 std::string trim_whitespace(const std::string& value) {
     const char* whitespace = " \t\n\r\f\v";
@@ -577,7 +579,8 @@ void ConsistencyPassService::process_chunk(
     }
 
     try {
-        const std::string response = llm.complete_prompt(prompt, 512);
+        const std::string response =
+            llm.complete_prompt(prompt, kConsistencyPassCompletionTokens);
         if (prompt_logging_enabled) {
             std::cout << "[CONSISTENCY RESPONSE]\n" << response << "\n";
         }
@@ -609,7 +612,7 @@ void ConsistencyPassService::process_chunks(
     const ProgressCallback& progress_callback) const
 {
     std::vector<const CategorizedFile*> chunk;
-    chunk.reserve(10);
+    chunk.reserve(kConsistencyPassChunkSize);
 
     for (size_t index = 0; index < categorized_files.size(); ++index) {
         if (stop_flag.load()) {
@@ -617,7 +620,8 @@ void ConsistencyPassService::process_chunks(
         }
 
         chunk.push_back(&categorized_files[index]);
-        const bool should_flush = chunk.size() == 10 || index + 1 == categorized_files.size();
+        const bool should_flush =
+            chunk.size() == kConsistencyPassChunkSize || index + 1 == categorized_files.size();
         if (!should_flush) {
             continue;
         }

@@ -52,3 +52,8 @@ TEST_CASE("sanitize_path_label preserves valid Unicode emoji labels") {
 
     REQUIRE(Utils::sanitize_path_label(label) == label);
 }
+
+TEST_CASE("format_size keeps byte values in bytes below one kilobyte") {
+    REQUIRE(Utils::format_size(999) == "999.00 B");
+    REQUIRE(Utils::format_size(1024) == "1.00 KB");
+}

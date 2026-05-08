@@ -27,6 +27,16 @@
 
 namespace {
 
+constexpr int kDefaultLocalDocumentContextTokens = 2048;
+constexpr int kDefaultRemoteDocumentContextTokens = 4096;
+constexpr int kMinimumDocumentContextTokens = 512;
+constexpr int kMaximumDocumentContextTokens = 8192;
+constexpr int kMinimumDocumentReserveTokens = 192;
+constexpr int kMinimumPromptBudgetTokens = 256;
+constexpr int kDefaultDocumentOutputTokens = 256;
+constexpr int kLocalDocumentCharsPerToken = 2;
+constexpr int kRemoteDocumentCharsPerToken = 4;
+
 class AnalysisCancelled : public std::runtime_error {
 public:
     explicit AnalysisCancelled(const std::string& message)
@@ -147,17 +157,23 @@ int resolve_local_context_tokens()
     if (auto parsed = read_env_int("LLAMA_CPP_MAX_CONTEXT")) {
         return *parsed;
     }
-    return 2048;
+    return kDefaultLocalDocumentContextTokens;
 }
 
 size_t resolve_document_char_budget(bool using_local_llm, int max_output_tokens)
 {
-    int context_tokens = using_local_llm ? resolve_local_context_tokens() : 4096;
-    context_tokens = std::clamp(context_tokens, 512, 8192);
-    const int reserve_tokens = std::max(192, context_tokens / 6);
+    int context_tokens =
+        using_local_llm ? resolve_local_context_tokens() : kDefaultRemoteDocumentContextTokens;
+    context_tokens = std::clamp(context_tokens,
+                                kMinimumDocumentContextTokens,
+                                kMaximumDocumentContextTokens);
+    const int reserve_tokens =
+        std::max(kMinimumDocumentReserveTokens, context_tokens / 6);
     const int output_tokens = std::clamp(max_output_tokens, 0, context_tokens / 2);
-    const int prompt_tokens = std::max(256, context_tokens - reserve_tokens - output_tokens);
-    const size_t chars_per_token = using_local_llm ? 2 : 4;
+    const int prompt_tokens =
+        std::max(kMinimumPromptBudgetTokens, context_tokens - reserve_tokens - output_tokens);
+    const size_t chars_per_token =
+        using_local_llm ? kLocalDocumentCharsPerToken : kRemoteDocumentCharsPerToken;
     return static_cast<size_t>(prompt_tokens) * chars_per_token;
 }
 
@@ -1294,7 +1310,7 @@ void AnalysisCoordinator::execute()
             };
 
             DocumentTextAnalyzer::Settings doc_settings;
-            doc_settings.max_tokens = 256;
+            doc_settings.max_tokens = kDefaultDocumentOutputTokens;
             const size_t char_budget =
                 resolve_document_char_budget(app_.using_local_llm, doc_settings.max_tokens);
             doc_settings.max_characters = std::min(doc_settings.max_characters, char_budget);

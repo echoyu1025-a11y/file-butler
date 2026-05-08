@@ -23,6 +23,17 @@
 #include <spdlog/fmt/fmt.h>
 
 namespace {
+constexpr std::size_t kFormatSizeBufferBytes = 64;
+constexpr double kBytesPerKiB = 1024.0;
+constexpr double kBytesPerMiB = 1024.0 * kBytesPerKiB;
+constexpr double kBytesPerGiB = 1024.0 * kBytesPerMiB;
+constexpr std::size_t kBytesPerMiBInt = 1024U * 1024U;
+constexpr int kMinimumCudaVramForGpuLayersMb = 2048;
+constexpr int kCudaVramStepMb = 512;
+constexpr int kCudaBaseGpuLayers = 14;
+constexpr int kCudaLayersPerStep = 2;
+constexpr int kCudaMaxGpuLayers = 32;
+
 template <typename... Args>
 void log_core(spdlog::level::level_enum level, const char* fmt, Args&&... args) {
     auto message = fmt::format(fmt::runtime(fmt), std::forward<Args>(args)...);
@@ -455,25 +466,25 @@ bool Utils::is_os_linux() {
 
 std::string Utils::format_size(curl_off_t bytes)
 {
-    char buffer[64];
-    if (bytes >= (1LL << 30))
+    char buffer[kFormatSizeBufferBytes];
+    if (bytes >= static_cast<curl_off_t>(kBytesPerGiB))
         snprintf(buffer, sizeof(buffer), "%.2f GB",
-                 bytes / (double)(1LL << 30));
-    else if (bytes >= (1LL << 20))
-        snprintf(buffer, sizeof(buffer), "%.2f MB", bytes / (double)(1LL << 20));
-    else if (bytes >= (1LL << 10))
-        snprintf(buffer, sizeof(buffer), "%.2f KB", bytes / (double)(1LL << 10));
+                 bytes / kBytesPerGiB);
+    else if (bytes >= static_cast<curl_off_t>(kBytesPerMiB))
+        snprintf(buffer, sizeof(buffer), "%.2f MB", bytes / kBytesPerMiB);
+    else if (bytes >= static_cast<curl_off_t>(kBytesPerKiB))
+        snprintf(buffer, sizeof(buffer), "%.2f KB", bytes / kBytesPerKiB);
     else
-        snprintf(buffer, sizeof(buffer), "%.2f B", bytes / (double)(1LL << 10));
+        snprintf(buffer, sizeof(buffer), "%.2f B", static_cast<double>(bytes));
     return buffer;
 }
 
 
 int Utils::get_ngl(int vram_mb) {
-    if (vram_mb < 2048) return 0;
+    if (vram_mb < kMinimumCudaVramForGpuLayersMb) return 0;
 
-    int step = (vram_mb - 2048) / 512;
-    return std::min(14 + step * 2, 32);
+    const int step = (vram_mb - kMinimumCudaVramForGpuLayersMb) / kCudaVramStepMb;
+    return std::min(kCudaBaseGpuLayers + step * kCudaLayersPerStep, kCudaMaxGpuLayers);
 }
 
 
@@ -567,7 +578,7 @@ int Utils::compute_ngl_from_cuda_memory(const CudaMemoryInfo& info) {
     if (usable_bytes == 0) {
         return 0;
     }
-    int vram_mb = static_cast<int>(usable_bytes / (1024 * 1024));
+    const int vram_mb = static_cast<int>(usable_bytes / kBytesPerMiBInt);
     return get_ngl(vram_mb);
 }
 

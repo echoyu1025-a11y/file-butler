@@ -1,10 +1,16 @@
 #pragma once
 
+#include <cstddef>
 #include <filesystem>
 #include <optional>
 #include <string>
 
 class ILLMClient;
+
+inline constexpr std::size_t kDefaultDocumentAnalyzerMaxCharacters = 8000;
+inline constexpr std::size_t kDefaultDocumentAnalyzerMaxFilenameWords = 3;
+inline constexpr std::size_t kDefaultDocumentAnalyzerMaxFilenameLength = 50;
+inline constexpr int kDefaultDocumentAnalyzerMaxTokens = 256;
 
 struct DocumentAnalysisResult {
     /**
@@ -29,19 +35,19 @@ public:
         /**
          * @brief Maximum characters to include in the excerpt sent to the LLM.
          */
-        size_t max_characters = 8000;
+        size_t max_characters = kDefaultDocumentAnalyzerMaxCharacters;
         /**
          * @brief Maximum number of words to keep in the suggested filename.
          */
-        size_t max_filename_words = 3;
+        size_t max_filename_words = kDefaultDocumentAnalyzerMaxFilenameWords;
         /**
          * @brief Maximum length of the suggested filename stem.
          */
-        size_t max_filename_length = 50;
+        size_t max_filename_length = kDefaultDocumentAnalyzerMaxFilenameLength;
         /**
          * @brief Maximum number of tokens to generate for the response.
          */
-        int max_tokens = 256;
+        int max_tokens = kDefaultDocumentAnalyzerMaxTokens;
     };
 
     /**

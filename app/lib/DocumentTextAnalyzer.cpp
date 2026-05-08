@@ -40,9 +40,9 @@
 #include <vector>
 
 namespace {
-constexpr size_t kDefaultMaxChars = 8000;
-constexpr int kDefaultMaxTokens = 256;
 constexpr size_t kMaxProcessOutput = 200000;
+constexpr std::size_t kZipMemberReadBufferBytes = 4096;
+constexpr int kPdfiumTextChunkChars = 4096;
 
 QString path_to_qstring(const std::filesystem::path& path) {
     const std::string utf8 = Utils::path_to_utf8(path);
@@ -220,7 +220,7 @@ std::optional<std::string> extract_zip_member_libzip(const std::filesystem::path
         }
         std::string output;
         output.reserve(kMaxProcessOutput);
-        std::array<char, 4096> buffer{};
+        std::array<char, kZipMemberReadBufferBytes> buffer{};
         zip_int64_t read = 0;
         while ((read = zip_fread(file, buffer.data(), buffer.size())) > 0) {
             output.append(buffer.data(), static_cast<size_t>(read));
@@ -380,7 +380,7 @@ std::string extract_pdf_text_pdfium(const std::filesystem::path& path, size_t ma
             continue;
         }
         const int total_chars = FPDFText_CountChars(text_page);
-        const int chunk = 4096;
+        const int chunk = kPdfiumTextChunkChars;
         int offset = 0;
         while (offset < total_chars && result.size() < max_chars) {
             const int take = std::min(chunk, total_chars - offset);
@@ -501,16 +501,16 @@ DocumentTextAnalyzer::DocumentTextAnalyzer()
 DocumentTextAnalyzer::DocumentTextAnalyzer(Settings settings)
     : settings_(settings) {
     if (settings_.max_characters == 0) {
-        settings_.max_characters = kDefaultMaxChars;
+        settings_.max_characters = kDefaultDocumentAnalyzerMaxCharacters;
     }
     if (settings_.max_tokens <= 0) {
-        settings_.max_tokens = kDefaultMaxTokens;
+        settings_.max_tokens = kDefaultDocumentAnalyzerMaxTokens;
     }
     if (settings_.max_filename_words == 0) {
-        settings_.max_filename_words = 3;
+        settings_.max_filename_words = kDefaultDocumentAnalyzerMaxFilenameWords;
     }
     if (settings_.max_filename_length == 0) {
-        settings_.max_filename_length = 50;
+        settings_.max_filename_length = kDefaultDocumentAnalyzerMaxFilenameLength;
     }
 }
 

@@ -113,6 +113,37 @@ private:
 
 namespace {
 
+constexpr int kDefaultLocalLlmContextTokens = 2048;
+constexpr int kMinimumContextAttemptTokens = 512;
+constexpr int kMaximumRuntimeContextTokens = 8192;
+constexpr int kFirstContextFallbackTokens = 2048;
+constexpr int kSecondContextFallbackTokens = 1024;
+constexpr int kFirstBatchFallbackTokens = 1024;
+constexpr int kSecondBatchFallbackTokens = 512;
+constexpr int kThirdBatchFallbackTokens = 256;
+constexpr int kDefaultCompletionTokens = 256;
+constexpr std::size_t kEstimatedPromptBufferBytes = 4096;
+constexpr std::size_t kTokenPieceBufferBytes = 128;
+constexpr std::size_t kMetadataScanBytes = 8ULL * 1024ULL * 1024ULL;
+constexpr double kBytesPerMiB = 1024.0 * 1024.0;
+constexpr double kMetalApproxFreeFallbackFraction = 0.60;
+constexpr double kMetalSafetyReserveFraction = 0.10;
+constexpr double kMetalMinimumBudgetFraction = 0.35;
+constexpr double kMetalMaximumBudgetFraction = 0.80;
+constexpr double kCudaApproxFreeFallbackFraction = 0.80;
+constexpr double kCudaSafetyReserveFraction = 0.05;
+constexpr double kCudaBudgetFallbackFraction = 0.75;
+constexpr double kCudaMaxApproxFreeBudgetFraction = 0.98;
+constexpr double kCudaMaxUsableTotalBudgetFraction = 0.90;
+constexpr double kCudaMinApproxFreeBudgetFraction = 0.45;
+constexpr double kCudaLayerOverheadFactor = 1.08;
+constexpr float kDefaultMinPSampler = 0.05f;
+constexpr float kDefaultTemperatureSampler = 0.8f;
+constexpr double kMinimumMetalSafetyReserveBytes = 512.0 * kBytesPerMiB;
+constexpr double kMinimumCudaSafetyReserveBytes = 192.0 * kBytesPerMiB;
+constexpr size_t kIntegratedGpuMemoryCapBytes =
+    static_cast<size_t>(4ULL) * 1024ULL * 1024ULL * 1024ULL;
+
 struct GgufCtxDeleter {
     void operator()(gguf_context* ctx) const { gguf_free(ctx); }
 };
@@ -163,7 +194,7 @@ int resolve_context_length() {
     if (try_parse_env_int("LLAMA_CPP_MAX_CONTEXT", parsed) && parsed > 0) {
         return parsed;
     }
-    return 2048; // increased default to better accommodate larger prompts (whitelists, hints)
+    return kDefaultLocalLlmContextTokens;
 }
 
 bool is_cpu_backend_requested() {
@@ -1315,7 +1346,7 @@ bool format_prompt(llama_model* model,
     owned_messages.emplace_back(user_prompt);
     messages.push_back({"user", owned_messages.back().c_str()});
 
-    std::size_t estimated_size = 4096;
+    std::size_t estimated_size = kEstimatedPromptBufferBytes;
     for (const auto& message : owned_messages) {
         estimated_size += message.size() * 2;
     }
@@ -1434,7 +1465,7 @@ std::string run_generation_loop(llama_context* ctx,
             break;
         }
 
-        char buf[128];
+        char buf[kTokenPieceBufferBytes];
         int n = llama_token_to_piece(vocab, new_token_id, buf,
                                      sizeof(buf), 0, true);
         if (n < 0) {
@@ -1526,8 +1557,7 @@ std::optional<int32_t> extract_block_count(const std::string & model_path) {
         return std::nullopt;
     }
 
-    constexpr std::size_t kScanBytes = 8 * 1024 * 1024; // first 8 MiB should contain metadata
-    std::vector<char> buffer(kScanBytes);
+    std::vector<char> buffer(kMetadataScanBytes);
 
     std::streamsize to_read = static_cast<std::streamsize>(buffer.size());
     std::error_code size_ec;
@@ -1609,12 +1639,14 @@ AutoGpuLayerEstimation estimate_gpu_layers_for_metal(const std::string & model_p
     double total_bytes = static_cast<double>(device_info.total_bytes);
 
     if (approx_free <= 0.0) {
-        approx_free = total_bytes * 0.6; // assume we can use ~60% of total RAM when free info is missing
+        approx_free = total_bytes * kMetalApproxFreeFallbackFraction;
     }
 
-    const double safety_reserve = std::max(total_bytes * 0.10, 512.0 * 1024.0 * 1024.0); // keep at least 10% or 512 MiB free
-    double budget_bytes = std::max(approx_free - safety_reserve, total_bytes * 0.35);    // use at least 35% of total as budget
-    budget_bytes = std::min(budget_bytes, total_bytes * 0.80);                           // never try to use more than 80% of RAM
+    const double safety_reserve =
+        std::max(total_bytes * kMetalSafetyReserveFraction, kMinimumMetalSafetyReserveBytes);
+    double budget_bytes =
+        std::max(approx_free - safety_reserve, total_bytes * kMetalMinimumBudgetFraction);
+    budget_bytes = std::min(budget_bytes, total_bytes * kMetalMaximumBudgetFraction);
 
     if (budget_bytes <= 0.0 || bytes_per_layer <= 0.0) {
         result.layers = 0;
@@ -1729,7 +1761,7 @@ bool compute_cuda_budget(const Utils::CudaMemoryInfo& memory_info,
     }
 
     if (budget.approx_free <= 0.0) {
-        budget.approx_free = budget.usable_total * 0.80;
+        budget.approx_free = budget.usable_total * kCudaApproxFreeFallbackFraction;
     } else if (budget.approx_free > budget.usable_total) {
         budget.approx_free = budget.usable_total;
     }
@@ -1741,19 +1773,23 @@ bool compute_cuda_budget(const Utils::CudaMemoryInfo& memory_info,
     }
 
     const double safety_reserve =
-        std::max(budget.usable_total * 0.05, 192.0 * 1024.0 * 1024.0);
+        std::max(budget.usable_total * kCudaSafetyReserveFraction,
+                 kMinimumCudaSafetyReserveBytes);
     budget.budget_bytes = budget.approx_free - safety_reserve;
     if (budget.budget_bytes <= 0.0) {
-        budget.budget_bytes = budget.approx_free * 0.75;
+        budget.budget_bytes = budget.approx_free * kCudaBudgetFallbackFraction;
     }
 
-    const double max_budget = std::min(budget.approx_free * 0.98, budget.usable_total * 0.90);
+    const double max_budget =
+        std::min(budget.approx_free * kCudaMaxApproxFreeBudgetFraction,
+                 budget.usable_total * kCudaMaxUsableTotalBudgetFraction);
     if (max_budget <= 0.0) {
         mark_insufficient_gpu_memory(result, "insufficient CUDA memory budget");
         return false;
     }
 
-    const double min_budget = std::min(budget.approx_free * 0.45, max_budget);
+    const double min_budget =
+        std::min(budget.approx_free * kCudaMinApproxFreeBudgetFraction, max_budget);
     budget.budget_bytes = std::clamp(budget.budget_bytes, min_budget, max_budget);
     return true;
 }
@@ -1762,8 +1798,7 @@ bool finalize_cuda_estimate(const LayerMetrics& metrics,
                             const CudaBudget& budget,
                             AutoGpuLayerEstimation& result)
 {
-    constexpr double overhead_factor = 1.08;
-    const double denominator = metrics.bytes_per_layer * overhead_factor;
+    const double denominator = metrics.bytes_per_layer * kCudaLayerOverheadFactor;
     if (denominator <= 0.0) {
         result.layers = 0;
         result.reason = "invalid CUDA layer parameters";
@@ -1844,7 +1879,7 @@ int determine_metal_layers(const std::string& model_path,
         gpu_layers = (estimation.layers >= 0) ? estimation.layers : -1;
 
         if (logger) {
-            const double to_mib = 1024.0 * 1024.0;
+            const double to_mib = kBytesPerMiB;
             logger->info(
                 "Metal device '{}' total {:.1f} MiB, free {:.1f} MiB -> n_gpu_layers={} ({})",
                 device_info.name.empty() ? "GPU" : device_info.name,
@@ -1884,13 +1919,12 @@ Utils::CudaMemoryInfo cap_integrated_gpu_memory(const BackendMemoryInfo& backend
         return adjusted;
     }
 
-    constexpr size_t igpu_cap_bytes = static_cast<size_t>(4ULL) * 1024ULL * 1024ULL * 1024ULL; // 4 GiB
-    adjusted.free_bytes = std::min(adjusted.free_bytes, igpu_cap_bytes);
-    adjusted.total_bytes = std::min(adjusted.total_bytes, igpu_cap_bytes);
+    adjusted.free_bytes = std::min(adjusted.free_bytes, kIntegratedGpuMemoryCapBytes);
+    adjusted.total_bytes = std::min(adjusted.total_bytes, kIntegratedGpuMemoryCapBytes);
     if (logger) {
-        const double to_mib = 1024.0 * 1024.0;
+        const double to_mib = kBytesPerMiB;
         logger->info("Vulkan device reported as integrated GPU; capping usable memory to {:.1f} MiB",
-                     igpu_cap_bytes / to_mib);
+                     kIntegratedGpuMemoryCapBytes / to_mib);
     }
     return adjusted;
 }
@@ -1948,7 +1982,7 @@ void log_vulkan_estimation(const Utils::CudaMemoryInfo& memory,
     if (!logger) {
         return;
     }
-    const double to_mib = 1024.0 * 1024.0;
+    const double to_mib = kBytesPerMiB;
     const char* device_label = original.name.empty() ? "Vulkan device" : original.name.c_str();
     logger->info(
         "{} total {:.1f} MiB, free {:.1f} MiB -> n_gpu_layers={} ({})",
@@ -2195,7 +2229,7 @@ NglEstimationResult estimate_ngl_from_cuda_info(const std::string& model_path,
             logger->info("CUDA estimator suggested {} layers, but heuristic floor kept {}",
                          estimation.layers, candidate_layers);
         }
-        const double to_mib = 1024.0 * 1024.0;
+        const double to_mib = kBytesPerMiB;
         logger->info(
             "CUDA device total {:.1f} MiB, free {:.1f} MiB -> estimator={}, heuristic={}, chosen={} ({})",
             cuda_info->total_bytes / to_mib,
@@ -2311,7 +2345,9 @@ LocalLLMClient::LocalLLMClient(const std::string& model_path,
     configure_llama_logging(logger);
     load_ggml_backends_once(logger);
 
-    const int context_length = std::clamp(resolve_context_length(), 512, 8192);
+    const int context_length = std::clamp(resolve_context_length(),
+                                          kMinimumContextAttemptTokens,
+                                          kMaximumRuntimeContextTokens);
     llama_model_params model_params = prepare_model_params(logger);
 
     if (logger) {
@@ -2608,7 +2644,7 @@ std::string LocalLLMClient::generate_response(const std::string& prompt,
     auto build_context_attempts = [](int n_ctx, int n_batch) {
         std::vector<ContextAttempt> attempts;
         auto add_attempt = [&](int ctx, int batch) {
-            ctx = std::max(ctx, 512);
+            ctx = std::max(ctx, kMinimumContextAttemptTokens);
             batch = std::clamp(batch, 1, ctx);
             if (ctx > n_ctx || batch > n_batch) {
                 return;
@@ -2624,9 +2660,12 @@ std::string LocalLLMClient::generate_response(const std::string& prompt,
             attempts.push_back({ctx, batch});
         };
 
-        add_attempt(std::min(n_ctx, 2048), std::min(n_batch, 1024));
-        add_attempt(std::min(n_ctx, 1024), std::min(n_batch, 512));
-        add_attempt(std::min(n_ctx, 512), std::min(n_batch, 256));
+        add_attempt(std::min(n_ctx, kFirstContextFallbackTokens),
+                    std::min(n_batch, kFirstBatchFallbackTokens));
+        add_attempt(std::min(n_ctx, kSecondContextFallbackTokens),
+                    std::min(n_batch, kSecondBatchFallbackTokens));
+        add_attempt(std::min(n_ctx, kMinimumContextAttemptTokens),
+                    std::min(n_batch, kThirdBatchFallbackTokens));
         return attempts;
     };
 
@@ -2730,8 +2769,8 @@ std::string LocalLLMClient::generate_response(const std::string& prompt,
             ctx_params = resolved_params;
 
             smpl = llama_sampler_chain_init(llama_sampler_chain_default_params());
-            llama_sampler_chain_add(smpl, llama_sampler_init_min_p(0.05f, 1));
-            llama_sampler_chain_add(smpl, llama_sampler_init_temp(0.8f));
+            llama_sampler_chain_add(smpl, llama_sampler_init_min_p(kDefaultMinPSampler, 1));
+            llama_sampler_chain_add(smpl, llama_sampler_init_temp(kDefaultTemperatureSampler));
             llama_sampler_chain_add(smpl, llama_sampler_init_dist(LLAMA_DEFAULT_SEED));
 
             std::vector<llama_token> prompt_tokens;
@@ -2881,7 +2920,7 @@ std::string LocalLLMClient::categorize_file(const std::string& file_name,
 std::string LocalLLMClient::complete_prompt(const std::string& prompt,
                                             int max_tokens)
 {
-    const int capped = max_tokens > 0 ? max_tokens : 256;
+    const int capped = max_tokens > 0 ? max_tokens : kDefaultCompletionTokens;
     if (prompt_logging_enabled) {
         std::cout << "\n[DEV][PROMPT] Completion request\n"
                   << "[user]\n" << prompt << "\n";

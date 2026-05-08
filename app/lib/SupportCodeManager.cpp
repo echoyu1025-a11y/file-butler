@@ -27,6 +27,7 @@ constexpr std::size_t kSaltSize = 16u;
 constexpr std::size_t kHashSize = 32u;
 constexpr std::size_t kBlobSize = 120u;
 constexpr std::size_t kSignatureSize = 64u;
+constexpr std::size_t kMaxEncodedSupportCodeLength = 512u;
 constexpr char kCodePrefix[] = "AIFS1";
 constexpr char kPayloadPrefix[] = "aifs-support:v1:";
 
@@ -269,7 +270,7 @@ bool SupportCodeManager::force_disable_prompt_for_testing() const {
 
 std::optional<std::string> SupportCodeManager::decode_payload(const std::string& code) {
     const std::string trimmed = trim_ascii(code);
-    if (trimmed.empty() || trimmed.size() > 512) {
+    if (trimmed.empty() || trimmed.size() > kMaxEncodedSupportCodeLength) {
         return std::nullopt;
     }
 
