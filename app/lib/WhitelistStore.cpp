@@ -4,16 +4,52 @@
 
 #include <QSettings>
 #include <algorithm>
+#include <cctype>
 
 namespace {
 constexpr char kMetadataGroup[] = "__meta__";
 constexpr char kBuiltInSeedVersionKey[] = "BuiltInSeedVersion";
-constexpr int kCurrentBuiltInSeedVersion = 2;
+constexpr int kCurrentBuiltInSeedVersion = 3;
 constexpr char kDocumentsWhitelistName[] = "Documents";
+constexpr char kLegacyMusicCategory[] = "music";
+constexpr char kCanonicalAudioCategory[] = "Audio";
+
+std::string to_lower_copy(std::string value) {
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
+        return static_cast<char>(std::tolower(ch));
+    });
+    return value;
+}
+
+bool migrate_legacy_category_names(std::vector<std::string>& categories) {
+    std::vector<std::string> migrated;
+    migrated.reserve(categories.size());
+
+    bool changed = false;
+    for (const auto& category : categories) {
+        std::string canonical = category;
+        if (to_lower_copy(category) == kLegacyMusicCategory) {
+            canonical = kCanonicalAudioCategory;
+            changed = true;
+        }
+
+        if (std::find(migrated.begin(), migrated.end(), canonical) == migrated.end()) {
+            migrated.push_back(canonical);
+        } else if (canonical != category) {
+            changed = true;
+        }
+    }
+
+    if (changed) {
+        categories = std::move(migrated);
+    }
+    return changed;
+}
 
 std::vector<std::string> split_csv(const QString& value) {
     std::vector<std::string> out;
-    const auto parts = value.split(",");
+    const QChar delimiter = value.contains(';') ? QChar(';') : QChar(',');
+    const auto parts = value.split(delimiter);
     for (const auto& part : parts) {
         QString trimmed = part.trimmed();
         if (!trimmed.isEmpty()) {
@@ -63,9 +99,10 @@ bool WhitelistStore::load()
             continue;
         }
         settings.beginGroup(group);
-        const auto cats = split_csv(settings.value("Categories").toString());
+        auto cats = split_csv(settings.value("Categories").toString());
         const auto subs = split_csv(settings.value("Subcategories").toString());
         settings.endGroup();
+        changed = migrate_legacy_category_names(cats) || changed;
         if (!cats.empty() || !subs.empty()) {
             entries_[group.toStdString()] = WhitelistEntry{cats, subs};
         }
@@ -142,10 +179,11 @@ void WhitelistStore::ensure_default_from_legacy(const std::vector<std::string>& 
             "Archives", "Backups", "Books", "Configs", "Data Exports",
             "Development", "Documents", "Drivers", "Ebooks", "Firmware",
             "Guides", "Images", "Installers", "Licenses", "Manuals",
-            "Music", "Operating Systems", "Presentations", "Software", "Spreadsheets", "System",
+            "Audio", "Operating Systems", "Presentations", "Software", "Spreadsheets", "System",
             "Temporary", "Videos"
         };
     }
+    migrate_legacy_category_names(use_cats);
     if (use_subs.empty()) {
         use_subs = {};
     }

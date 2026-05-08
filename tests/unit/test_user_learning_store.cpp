@@ -159,6 +159,41 @@ TEST_CASE("UserLearningStore preserves review-confirmed taxonomy source during w
     CHECK(store.approved_example_count() == 1);
 }
 
+TEST_CASE("UserLearningStore removes imported whitelist taxonomy candidates without touching approved examples")
+{
+    TempDir config_dir;
+    UserLearningStore store(config_dir.path().string());
+    REQUIRE(store.is_open());
+
+    std::string error;
+    REQUIRE(store.import_taxonomy_candidates({{"Manuals", "", "whitelist:Default"},
+                                              {"Spreadsheets", "Budgets", "whitelist:Documents"},
+                                              {"Configs", "", "user_taxonomy"}}, &error));
+
+    UserLearningStore::ApprovedMapping mapping;
+    mapping.file_name = "camera_manual.pdf";
+    mapping.file_type = FileType::File;
+    mapping.dir_path = "/docs";
+    mapping.category = "Guides";
+    mapping.subcategory = "Camera Manuals";
+    REQUIRE(store.record_approved_mapping(mapping, &error));
+
+    REQUIRE(store.remove_taxonomy_candidates_with_source_prefix("whitelist:", &error));
+
+    CHECK_FALSE(store.find_taxonomy_entry("Manuals", "").has_value());
+    CHECK_FALSE(store.find_taxonomy_entry("Spreadsheets", "Budgets").has_value());
+
+    const auto kept_import = store.find_taxonomy_entry("Configs", "");
+    REQUIRE(kept_import.has_value());
+    CHECK(kept_import->source == "user_taxonomy");
+
+    const auto kept_approved = store.find_taxonomy_entry("Guides", "Camera Manuals");
+    REQUIRE(kept_approved.has_value());
+    CHECK(kept_approved->source == "review_confirmed");
+    CHECK(kept_approved->example_count == 1);
+    CHECK(store.approved_example_count() == 1);
+}
+
 TEST_CASE("UserLearningStore refreshes embeddings when approved examples change")
 {
     TempDir config_dir;

@@ -3,6 +3,8 @@
 #include "DatabaseManager.hpp"
 #include "TestHelpers.hpp"
 
+#include <sqlite3.h>
+
 TEST_CASE("DatabaseManager keeps rename-only entries with empty labels") {
     TempDir base_dir;
     EnvVarGuard config_guard("AI_FILE_SORTER_CONFIG_DIR", base_dir.path().string());
@@ -140,6 +142,34 @@ TEST_CASE("DatabaseManager normalizes image category synonyms and image media al
     CHECK(media_audio.taxonomy_id != images.taxonomy_id);
 }
 
+TEST_CASE("DatabaseManager canonicalizes legacy Music categories into Audio") {
+    TempDir base_dir;
+    EnvVarGuard config_guard("AI_FILE_SORTER_CONFIG_DIR", base_dir.path().string());
+    DatabaseManager db(base_dir.path().string());
+
+    auto audio = db.resolve_category("Audio", "Podcast");
+    auto music = db.resolve_category("Music", "Podcast");
+
+    REQUIRE(audio.taxonomy_id > 0);
+    CHECK(music.taxonomy_id == audio.taxonomy_id);
+    CHECK(music.category == "Audio");
+    CHECK(music.subcategory == "Podcast");
+}
+
+TEST_CASE("DatabaseManager canonicalizes Installer Builders subcategories into Installer Tools") {
+    TempDir base_dir;
+    EnvVarGuard config_guard("AI_FILE_SORTER_CONFIG_DIR", base_dir.path().string());
+    DatabaseManager db(base_dir.path().string());
+
+    auto canonical = db.resolve_category("Software", "Installer Tools");
+    auto legacy = db.resolve_category("Software", "Installer Builders");
+
+    REQUIRE(canonical.taxonomy_id > 0);
+    CHECK(legacy.taxonomy_id == canonical.taxonomy_id);
+    CHECK(legacy.category == "Software");
+    CHECK(legacy.subcategory == "Installer Tools");
+}
+
 TEST_CASE("DatabaseManager normalizes document category synonyms for taxonomy matching") {
     TempDir base_dir;
     EnvVarGuard config_guard("AI_FILE_SORTER_CONFIG_DIR", base_dir.path().string());
@@ -201,22 +231,23 @@ TEST_CASE("DatabaseManager keeps specialized document-family categories and norm
     CHECK(guides_general.taxonomy_id != documents_manuals.taxonomy_id);
 }
 
-TEST_CASE("DatabaseManager preserves the Installers family under software-like labels") {
+TEST_CASE("DatabaseManager structurally canonicalizes broad main labels without reclassifying software semantics") {
     TempDir base_dir;
     EnvVarGuard config_guard("AI_FILE_SORTER_CONFIG_DIR", base_dir.path().string());
     DatabaseManager db(base_dir.path().string());
 
-    auto software = db.resolve_category("Software", "Installers");
-    auto installers = db.resolve_category("Installers", "Installers");
-    auto setup_files = db.resolve_category("Setup files", "Installers");
+    auto installer = db.resolve_category("Installer", "Installer");
+    auto operating_system = db.resolve_category("Operating System", "Operating System");
+    auto software_installers = db.resolve_category("Software", "Installers");
 
-    REQUIRE(software.taxonomy_id > 0);
-    CHECK(installers.taxonomy_id == software.taxonomy_id);
-    CHECK(setup_files.taxonomy_id == software.taxonomy_id);
-    CHECK(installers.category == "Installers");
-    CHECK(setup_files.category == "Installers");
-    CHECK(software.category == "Installers");
-    CHECK(software.subcategory == "General");
+    REQUIRE(installer.taxonomy_id > 0);
+    CHECK(installer.category == "Installers");
+    CHECK(installer.subcategory == "General");
+    CHECK(operating_system.category == "Operating Systems");
+    CHECK(operating_system.subcategory == "General");
+    CHECK(software_installers.category == "Software");
+    CHECK(software_installers.subcategory == "Installers");
+    CHECK(software_installers.taxonomy_id != installer.taxonomy_id);
 }
 
 TEST_CASE("DatabaseManager keeps non-family software semantics under Software") {
@@ -231,4 +262,117 @@ TEST_CASE("DatabaseManager keeps non-family software semantics under Software") 
     CHECK(updates.category == "Software");
     CHECK(patches.category == "Software");
     CHECK(patches.taxonomy_id == updates.taxonomy_id);
+}
+
+TEST_CASE("DatabaseManager can clear cached categorizations together with taxonomy state") {
+    TempDir base_dir;
+    EnvVarGuard config_guard("AI_FILE_SORTER_CONFIG_DIR", base_dir.path().string());
+    const std::string db_path = (base_dir.path() / "categorization_results.db").string();
+    DatabaseManager db(base_dir.path().string());
+
+    const auto resolved = db.resolve_category("Documents_2025-05", "Financial Documents");
+    REQUIRE(resolved.taxonomy_id > 0);
+    REQUIRE(db.insert_or_update_file_with_categorization("receipt.pdf",
+                                                         "F",
+                                                         "/sample",
+                                                         resolved,
+                                                         false,
+                                                         std::string(),
+                                                         false));
+
+    REQUIRE(db.clear_all_categorizations(true));
+
+    sqlite3* raw_db = nullptr;
+    REQUIRE(sqlite3_open(db_path.c_str(), &raw_db) == SQLITE_OK);
+
+    const auto count_rows = [&](const char* sql) {
+        sqlite3_stmt* stmt = nullptr;
+        REQUIRE(sqlite3_prepare_v2(raw_db, sql, -1, &stmt, nullptr) == SQLITE_OK);
+        REQUIRE(sqlite3_step(stmt) == SQLITE_ROW);
+        const int count = sqlite3_column_int(stmt, 0);
+        sqlite3_finalize(stmt);
+        return count;
+    };
+
+    CHECK(count_rows("SELECT COUNT(*) FROM file_categorization;") == 0);
+    CHECK(count_rows("SELECT COUNT(*) FROM category_taxonomy;") == 0);
+    CHECK(count_rows("SELECT COUNT(*) FROM category_alias;") == 0);
+    CHECK(count_rows("SELECT COUNT(*) FROM category_translation;") == 0);
+
+    sqlite3_close(raw_db);
+}
+
+TEST_CASE("DatabaseManager migrates legacy audio and installer-builder taxonomy labels on reopen") {
+    TempDir base_dir;
+    EnvVarGuard config_guard("AI_FILE_SORTER_CONFIG_DIR", base_dir.path().string());
+    const std::string db_path = (base_dir.path() / "categorization_results.db").string();
+
+    {
+        DatabaseManager db(base_dir.path().string());
+    }
+
+    sqlite3* raw_db = nullptr;
+    REQUIRE(sqlite3_open(db_path.c_str(), &raw_db) == SQLITE_OK);
+
+    const auto exec_sql = [&](const char* sql) {
+        char* error = nullptr;
+        INFO(sql);
+        REQUIRE(sqlite3_exec(raw_db, sql, nullptr, nullptr, &error) == SQLITE_OK);
+        if (error) {
+            sqlite3_free(error);
+        }
+    };
+
+    exec_sql("DELETE FROM category_alias;");
+    exec_sql("DELETE FROM category_translation;");
+    exec_sql("DELETE FROM file_categorization;");
+    exec_sql("DELETE FROM category_taxonomy;");
+    exec_sql("INSERT INTO category_taxonomy "
+             "(id, canonical_category, canonical_subcategory, normalized_category, normalized_subcategory, frequency) "
+             "VALUES (1, 'Music', 'Podcast', 'music', 'podcast', 1);");
+    exec_sql("INSERT INTO category_taxonomy "
+             "(id, canonical_category, canonical_subcategory, normalized_category, normalized_subcategory, frequency) "
+             "VALUES (2, 'Software', 'Installer Builders', 'software', 'installer builders', 1);");
+    exec_sql("INSERT INTO file_categorization "
+             "(file_name, file_type, dir_path, category, subcategory, taxonomy_id, categorization_style, rename_only, rename_applied) "
+             "VALUES ('episode.mp3', 'F', '/sample', 'Music', 'Podcast', 1, 0, 0, 0);");
+    exec_sql("INSERT INTO file_categorization "
+             "(file_name, file_type, dir_path, category, subcategory, taxonomy_id, categorization_style, rename_only, rename_applied) "
+             "VALUES ('builder.zip', 'F', '/sample', 'Software', 'Installer Builders', 2, 0, 0, 0);");
+    REQUIRE(sqlite3_close(raw_db) == SQLITE_OK);
+
+    {
+        DatabaseManager db(base_dir.path().string());
+
+        const auto episode = db.get_categorized_file("/sample", "episode.mp3", FileType::File);
+        REQUIRE(episode.has_value());
+        CHECK(episode->category == "Audio");
+        CHECK(episode->subcategory == "Podcast");
+
+        const auto builder = db.get_categorized_file("/sample", "builder.zip", FileType::File);
+        REQUIRE(builder.has_value());
+        CHECK(builder->category == "Software");
+        CHECK(builder->subcategory == "Installer Tools");
+
+        const auto audio = db.resolve_category("Audio", "Podcast");
+        const auto legacy_audio = db.resolve_category("Music", "Podcast");
+        CHECK(legacy_audio.taxonomy_id == audio.taxonomy_id);
+
+        const auto installer = db.resolve_category("Software", "Installer Tools");
+        const auto legacy_installer = db.resolve_category("Software", "Installer Builders");
+        CHECK(legacy_installer.taxonomy_id == installer.taxonomy_id);
+    }
+
+    REQUIRE(sqlite3_open(db_path.c_str(), &raw_db) == SQLITE_OK);
+    sqlite3_stmt* stmt = nullptr;
+    REQUIRE(sqlite3_prepare_v2(raw_db,
+                               "SELECT COUNT(*) FROM category_taxonomy "
+                               "WHERE normalized_category = 'music' OR normalized_subcategory = 'installer builders';",
+                               -1,
+                               &stmt,
+                               nullptr) == SQLITE_OK);
+    REQUIRE(sqlite3_step(stmt) == SQLITE_ROW);
+    CHECK(sqlite3_column_int(stmt, 0) == 0);
+    sqlite3_finalize(stmt);
+    REQUIRE(sqlite3_close(raw_db) == SQLITE_OK);
 }

@@ -396,6 +396,13 @@ Procedure: Import the same whitelist candidate again and inspect the learned tax
 Expected outcome: The taxonomy entry keeps source `review_confirmed`, retains its approved example count, and is not duplicated.
 Run: `./build-tests/ai_file_sorter_tests "UserLearningStore preserves review-confirmed taxonomy source during whitelist import"`
 
+#### Test case: UserLearningStore removes imported whitelist taxonomy candidates without touching approved examples
+Purpose: Allow whitelist refreshes to clear imported taxonomy rows without deleting user-approved learning data.
+Setup: Import whitelist-sourced candidates, import a non-whitelist user taxonomy candidate, and record a review-confirmed example.
+Procedure: Remove candidates whose source starts with `whitelist:` and inspect the remaining taxonomy rows.
+Expected outcome: Whitelist-imported entries are removed, user-owned non-whitelist entries remain, and approved examples stay intact.
+Run: `./build-tests/ai_file_sorter_tests "UserLearningStore removes imported whitelist taxonomy candidates without touching approved examples"`
+
 #### Test case: UserLearningStore refreshes embeddings when approved examples change
 Purpose: Ensure stored embeddings track the latest approved example context for a taxonomy entry.
 Setup: Record an approved mapping with context text.
@@ -490,6 +497,13 @@ Setup: Build a UTF-8 label containing a cloud emoji.
 Procedure: Call `Utils::sanitize_path_label()`.
 Expected outcome: The returned label exactly preserves the valid emoji-containing text.
 Run: `./build-tests/ai_file_sorter_tests "sanitize_path_label preserves valid Unicode emoji labels"`
+
+#### Test case: format_size keeps byte values in bytes below one kilobyte
+Purpose: Ensure small file sizes remain reported in bytes instead of being divided by the kilobyte scale.
+Setup: Use one value below 1024 bytes and one value at the kilobyte boundary.
+Procedure: Call `Utils::format_size()` for both values.
+Expected outcome: `999` formats as `999.00 B` and `1024` formats as `1.00 KB`.
+Run: `./build-tests/ai_file_sorter_tests "format_size keeps byte values in bytes below one kilobyte"`
 
 ### `tests/unit/test_llm_selection_dialog_visual.cpp` (non-Windows only)
 
@@ -652,6 +666,20 @@ Setup: Use the prompt-policy test access helpers with the structured multimodal 
 Procedure: Inspect the generated description and filename prompts.
 Expected outcome: The policy adds explicit system guidance, keeps the media marker in the user prompt, and uses structured filename rules aimed at instruction-tuned backends.
 Run: `./build-tests/ai_file_sorter_tests "LlavaImageAnalyzer exposes structured multimodal prompt policy"`
+
+#### Test case: LlavaImageAnalyzer lowers visual ngl when reserving mmproj headroom
+Purpose: Ensure the visual GPU layer estimate reserves enough VRAM for the projector and multimodal eval path instead of blindly offloading every text layer that fits.
+Setup: Create sparse temporary model files that mirror the logged Gemma visual model and mmproj sizes, then feed the helper the observed 3.7 GiB CUDA memory snapshot.
+Procedure: Ask the visual test helper for the mmproj-aware `n_gpu_layers` cap.
+Expected outcome: The helper trims the visual GPU layer count down to `20`, leaving headroom for mmproj and MTMD evaluation.
+Run: `./build-tests/ai_file_sorter_tests "LlavaImageAnalyzer lowers visual ngl when reserving mmproj headroom"`
+
+#### Test case: LlavaImageAnalyzer reconciles visual ngl to the GPU tier when the reserve-aware estimate is only slightly lower
+Purpose: Avoid overly conservative visual caps when the headroom math lands only a few layers below the GPU's overall VRAM tier.
+Setup: Create sparse temporary Gemma visual model and mmproj fixtures, then simulate a slightly lower free-memory snapshot on the same 3.7 GiB CUDA card class.
+Procedure: Ask the visual test helper for the mmproj-aware `n_gpu_layers` cap with the reduced free-memory value.
+Expected outcome: The helper reconciles the result back up to `20` instead of staying at an overly austere lower cap.
+Run: `./build-tests/ai_file_sorter_tests "LlavaImageAnalyzer reconciles visual ngl to the GPU tier when the reserve-aware estimate is only slightly lower"`
 
 ### `tests/unit/test_checkbox_matrix.cpp`
 
@@ -891,6 +919,20 @@ Procedure: Compare taxonomy IDs and canonical labels.
 Expected outcome: `Images/Graphics/Media+Photos` share taxonomy and canonicalize to `Images`; `Media+Audio` remains `Media`.
 Run: `./build-tests/ai_file_sorter_tests "DatabaseManager normalizes image category synonyms and image media aliases"`
 
+#### Test case: DatabaseManager canonicalizes legacy Music categories into Audio
+Purpose: Ensure the legacy `Music` main category resolves to the newer `Audio` bucket without changing the leaf subcategory.
+Setup: Resolve both `Audio + Podcast` and `Music + Podcast`.
+Procedure: Compare taxonomy IDs and canonical labels.
+Expected outcome: Both labels resolve to the same taxonomy entry and canonicalize to `Audio / Podcast`.
+Run: `./build-tests/ai_file_sorter_tests "DatabaseManager canonicalizes legacy Music categories into Audio"`
+
+#### Test case: DatabaseManager canonicalizes Installer Builders subcategories into Installer Tools
+Purpose: Ensure the ambiguous legacy installer-builder label resolves to the clearer `Installer Tools` subcategory.
+Setup: Resolve both `Software + Installer Tools` and `Software + Installer Builders`.
+Procedure: Compare taxonomy IDs and canonical labels.
+Expected outcome: Both labels resolve to the same taxonomy entry and canonicalize to `Software / Installer Tools`.
+Run: `./build-tests/ai_file_sorter_tests "DatabaseManager canonicalizes Installer Builders subcategories into Installer Tools"`
+
 #### Test case: DatabaseManager normalizes document category synonyms for taxonomy matching
 Purpose: Ensure document-like category variants collapse to `Documents`.
 Setup: Resolve `Documents`, `Texts`, `Papers`, and `Spreadsheets` with the same subcategory.
@@ -912,12 +954,12 @@ Procedure: Compare resolved taxonomy labels.
 Expected outcome: Specialized categories remain specialized, and generic subcategory values are normalized to useful labels.
 Run: `./build-tests/ai_file_sorter_tests "DatabaseManager keeps specialized document-family categories and normalizes generic subcategories"`
 
-#### Test case: DatabaseManager preserves the Installers family under software-like labels
-Purpose: Keep installer/update semantics distinct from generic software labels.
-Setup: Resolve `Software`, `Installers`, `Setup files`, `Software Update`, and `Patches`.
+#### Test case: DatabaseManager structurally canonicalizes broad main labels without reclassifying software semantics
+Purpose: Canonicalize broad family labels like `Installer` and `Operating System` without semantically reclassifying `Software / Installers` into a different main category.
+Setup: Resolve broad family labels and a mixed `Software / Installers` pair.
 Procedure: Compare taxonomy IDs and canonical labels.
-Expected outcome: Installer/update-like labels map to the `Installers` family where appropriate instead of always flattening to `Software`.
-Run: `./build-tests/ai_file_sorter_tests "DatabaseManager preserves the Installers family under software-like labels"`
+Expected outcome: Broad family labels normalize to `Installers` or `Operating Systems` with `General` when repeated, while `Software / Installers` stays `Software / Installers`.
+Run: `./build-tests/ai_file_sorter_tests "DatabaseManager structurally canonicalizes broad main labels without reclassifying software semantics"`
 
 #### Test case: DatabaseManager keeps non-family software semantics under Software
 Purpose: Ensure software labels that are not installer/update semantics remain generic software.
@@ -925,6 +967,20 @@ Setup: Resolve non-installer software categories and subcategories.
 Procedure: Compare resolved taxonomy labels.
 Expected outcome: Non-family software semantics remain under canonical category `Software`.
 Run: `./build-tests/ai_file_sorter_tests "DatabaseManager keeps non-family software semantics under Software"`
+
+#### Test case: DatabaseManager can clear cached categorizations together with taxonomy state
+Purpose: Ensure the categorization reset path can remove both cached file rows and taxonomy pollution.
+Setup: Create a taxonomy entry, store a cached file categorization, and keep the temporary database path.
+Procedure: Call `clear_all_categorizations(true)` and inspect the SQLite tables directly.
+Expected outcome: `file_categorization`, `category_taxonomy`, `category_alias`, and `category_translation` are all empty afterward.
+Run: `./build-tests/ai_file_sorter_tests "DatabaseManager can clear cached categorizations together with taxonomy state"`
+
+#### Test case: DatabaseManager migrates legacy audio and installer-builder taxonomy labels on reopen
+Purpose: Ensure old cached DB rows using `Music` or `Installer Builders` are upgraded automatically when the app reopens.
+Setup: Seed a temporary SQLite cache with legacy taxonomy rows and cached file rows that still use those labels.
+Procedure: Reopen `DatabaseManager`, fetch the cached files, and inspect the resulting taxonomy table.
+Expected outcome: Cached files reload as `Audio / Podcast` and `Software / Installer Tools`, and no legacy `music` or `installer builders` taxonomy rows remain.
+Run: `./build-tests/ai_file_sorter_tests "DatabaseManager migrates legacy audio and installer-builder taxonomy labels on reopen"`
 
 ### `tests/unit/test_file_scanner.cpp`
 
@@ -1161,7 +1217,7 @@ Run: `./tests/run_translation_tests.sh`
 Purpose: Ensure a new whitelist store starts with the built-in presets.
 Setup: Create a temporary settings store without saved whitelists.
 Procedure: Initialize `WhitelistStore` and read the available entries.
-Expected outcome: Built-in presets are present and selectable.
+Expected outcome: Built-in presets are present and selectable, and the default categories include `Audio` rather than the legacy `Music` label.
 Run: `./build-tests/ai_file_sorter_tests "WhitelistStore seeds built-in presets when empty"`
 
 #### Test case: WhitelistStore migrates the Documents preset once for legacy stores
@@ -1177,6 +1233,13 @@ Setup: Create a whitelist entry, save it, and initialize the store from settings
 Procedure: Verify the settings fields and reload the whitelist store from disk.
 Expected outcome: The whitelist name, categories, and subcategories remain consistent across initialization and reload.
 Run: `./build-tests/ai_file_sorter_tests "WhitelistStore initializes from settings and persists defaults"`
+
+#### Test case: WhitelistStore migrates legacy Music categories to Audio
+Purpose: Ensure persisted whitelist entries upgrade the legacy `Music` category to the canonical `Audio` bucket.
+Setup: Seed a temporary whitelist file with a semicolon-delimited default preset containing `Music`, `Videos`, and `Audio`.
+Procedure: Load the whitelist store, then reload it from disk.
+Expected outcome: The stored default categories become `Audio` and `Videos` without duplicate audio-family entries.
+Run: `./build-tests/ai_file_sorter_tests "WhitelistStore migrates legacy Music categories to Audio"`
 
 #### Test case: WhitelistStore preserves Unicode labels through save and load
 Purpose: Ensure valid Unicode whitelist labels, including emoji, survive persistence.
@@ -1233,6 +1296,13 @@ Setup: Record a review-confirmed manual mapping and use an LLM stub that returns
 Procedure: Categorize a camera manual file through the service.
 Expected outcome: The final category/subcategory uses the learned `Documents : Camera Guides` mapping instead of the generic model output.
 Run: `./build-tests/ai_file_sorter_tests "CategorizationService prefers learned candidates over generic model categories"`
+
+#### Test case: CategorizationService ignores whitelist-imported candidates when the model already returns a specific document subcategory
+Purpose: Prevent whitelist-derived taxonomy candidates from overriding an already specific model result for document-like files.
+Setup: Import a whitelist-sourced taxonomy candidate that lexically matches a receipt file and use an LLM stub that returns `Documents : Receipts`.
+Procedure: Categorize the receipt file through the service with the learning store attached.
+Expected outcome: The final category/subcategory remains `Documents : Receipts` instead of being replaced by the whitelist-imported candidate.
+Run: `./build-tests/ai_file_sorter_tests "CategorizationService ignores whitelist-imported candidates when the model already returns a specific document subcategory"`
 
 #### Test case: CategorizationService builds category language context when non-English selected
 Purpose: Ensure the category language context is generated for non-English settings.
@@ -1409,33 +1479,40 @@ Procedure: Generate the combined prompt context through the categorization servi
 Expected outcome: The context includes image guidance that keeps `Images` as the main category and pushes the depicted subject into the subcategory.
 Run: `./build-tests/ai_file_sorter_tests "CategorizationService adds stable guidance for supported image prompts"`
 
-#### Test case: CategorizationService narrows software-like prompts to software family candidates
-Purpose: Restrict software-like files to a small stable main-category list instead of exposing the whole taxonomy.
-Setup: Build a prompt context for a representative `.exe` file.
+#### Test case: CategorizationService leaves generic software-like prompts unscaffolded without whitelist
+Purpose: Keep non-document, non-image prompts close to the older minimal prompt style when no whitelist is active.
+Setup: Build a prompt context for a representative `.exe` file with default settings.
 Procedure: Generate the combined prompt context through the categorization service test access layer.
-Expected outcome: The context includes only the ordered software-family main-category candidates `Software`, `Installers`, `Drivers`, `Operating Systems`, and `Other`.
-Run: `./build-tests/ai_file_sorter_tests "CategorizationService narrows software-like prompts to software family candidates"`
+Expected outcome: The combined context is empty, meaning no extra software-family scaffolding was injected.
+Run: `./build-tests/ai_file_sorter_tests "CategorizationService leaves generic software-like prompts unscaffolded without whitelist"`
 
-#### Test case: CategorizationService narrows archive prompts to archive family candidates
-Purpose: Keep archive-like files on a small archive/software/data-export decision surface instead of letting the model roam the full taxonomy.
-Setup: Build a prompt context for a representative `.zip` file.
+#### Test case: CategorizationService adds artifact guidance for software-like prompts only when whitelist mode is active
+Purpose: Preserve targeted artifact guidance for installer/software files when whitelist mode is enabled.
+Setup: Enable a whitelist with software-family categories and build a prompt context for a representative `.exe` file.
 Procedure: Generate the combined prompt context through the categorization service test access layer.
-Expected outcome: The context includes the ordered archive-family main-category candidates `Archives`, `Software`, `Data Exports`, and `Other`.
-Run: `./build-tests/ai_file_sorter_tests "CategorizationService narrows archive prompts to archive family candidates"`
+Expected outcome: The context includes the software/archive artifact guidance plus whitelist-driven allowed main categories, and uses the clearer `Installer Tools` label.
+Run: `./build-tests/ai_file_sorter_tests "CategorizationService adds artifact guidance for software-like prompts only when whitelist mode is active"`
 
-#### Test case: CategorizationService normalizes software-like main categories to stable buckets
-Purpose: Prevent installer and executable files from keeping topical or inconsistent main categories after the model reply is parsed.
-Setup: Prepare representative `.exe` files and stub LLM responses that use unstable topical mains such as `Version Control`, `Installation Software`, and `Operating Systems`.
+#### Test case: CategorizationService structurally canonicalizes artifact family labels without semantic remapping
+Purpose: Keep only structural cleanup for artifact files, such as singular/plural main-category canonicalization and repeated-family fallback to `General`.
+Setup: Prepare representative `.exe` files and stub LLM responses that use broad family labels like `Installer`, `Driver`, and `Operating Systems`.
 Procedure: Categorize each entry through the service and inspect the canonical result.
-Expected outcome: The final main categories collapse into the bounded software family, with `Software`, `Installers`, or `Drivers` selected as appropriate while preserving a meaningful subcategory.
-Run: `./build-tests/ai_file_sorter_tests "CategorizationService normalizes software-like main categories to stable buckets"`
+Expected outcome: The service canonicalizes broad family labels structurally, but does not remap specific artifact semantics into different main categories.
+Run: `./build-tests/ai_file_sorter_tests "CategorizationService structurally canonicalizes artifact family labels without semantic remapping"`
 
-#### Test case: CategorizationService normalizes archive-like main categories to stable buckets
-Purpose: Prevent software archives and export bundles from keeping topical or drifting main categories after the model reply is parsed.
-Setup: Prepare representative `.zip` files and stub LLM responses that use unstable topical mains.
+#### Test case: CategorizationService preserves non-family artifact semantics from the model output
+Purpose: Avoid post-processing that rewrites specific software/archive semantics into different categories after the model reply is parsed.
+Setup: Prepare representative `.zip` files and stub LLM responses that use specific non-family categories such as `Database Management Tools`, `System Utilities`, and `Analytics`.
 Procedure: Categorize each entry through the service and inspect the canonical result.
-Expected outcome: The final main categories collapse into `Software`, `Data Exports`, or `Archives` as appropriate while preserving a meaningful subcategory.
-Run: `./build-tests/ai_file_sorter_tests "CategorizationService normalizes archive-like main categories to stable buckets"`
+Expected outcome: The final categories preserve those non-family labels, while broad family labels like `Archive` are still canonicalized structurally.
+Run: `./build-tests/ai_file_sorter_tests "CategorizationService preserves non-family artifact semantics from the model output"`
+
+#### Test case: CategorizationService falls back to General when a broad family subcategory repeats the category
+Purpose: Prefer a usable `Category / General` result over dropping the categorization when the model repeats a broad family label in both positions.
+Setup: Prepare a representative audio file and use an LLM stub that returns `Audio : Audio`.
+Procedure: Categorize the file through the service.
+Expected outcome: The final category/subcategory becomes `Audio / General` instead of an uncategorized fallback.
+Run: `./build-tests/ai_file_sorter_tests "CategorizationService falls back to General when a broad family subcategory repeats the category"`
 
 #### Test case: CategorizationService preserves explicit whitelist software-like main categories
 Purpose: Avoid overriding user-curated whitelist mains for software-like or archive-like files.
@@ -1444,40 +1521,19 @@ Procedure: Categorize the entry through the service.
 Expected outcome: The whitelist-approved main category is preserved instead of being normalized back into the bounded software/archive family.
 Run: `./build-tests/ai_file_sorter_tests "CategorizationService preserves explicit whitelist software-like main categories"`
 
-#### Test case: CategorizationService uses a broader fallback candidate list for unknown file types
-Purpose: Ensure unmapped extensions still use a bounded fallback list instead of the entire taxonomy.
+#### Test case: CategorizationService leaves unknown generic prompts unscaffolded without whitelist
+Purpose: Keep unknown-extension generic files on the minimal prompt path when no specialized image/document guidance applies.
 Setup: Build a prompt context for a representative unknown-extension file.
 Procedure: Generate the combined prompt context through the categorization service test access layer.
-Expected outcome: The context includes the broader fallback main-category list with `Other` as the escape hatch.
-Run: `./build-tests/ai_file_sorter_tests "CategorizationService uses a broader fallback candidate list for unknown file types"`
+Expected outcome: The combined context is empty, meaning the service did not inject fallback category scaffolding.
+Run: `./build-tests/ai_file_sorter_tests "CategorizationService leaves unknown generic prompts unscaffolded without whitelist"`
 
-#### Test case: CategorizationService uses separate main-category and subcategory prompts for document files
-Purpose: Ensure the service now selects the broad document family separately from the specific subject-matter label.
-Setup: Prepare a summarized `.pdf` prompt override and a sequenced LLM stub that first returns `Documents` and then `PCI DSS`.
-Procedure: Categorize the file through the service and capture both completion prompts.
-Expected outcome: The first prompt asks for only one allowed main-category label on a single line, the second prompt fixes the main category to `Documents` and asks for only the subcategory text, and the final categorization is `Documents : PCI DSS`.
-Run: `./build-tests/ai_file_sorter_tests "CategorizationService uses separate main-category and subcategory prompts for document files"`
-
-#### Test case: CategorizationService keeps the selected main category when the subcategory pass echoes another one
-Purpose: Prevent the second pass from drifting back into main-category selection after the first pass already chose a stable root.
-Setup: Prepare a software-like file and a sequenced LLM stub that returns `Software` first and a mismatched pair `Operating Systems : Version Control` second.
-Procedure: Categorize the file through the service.
-Expected outcome: The final categorization keeps `Software` as the main category and uses only `Version Control` as the subcategory.
-Run: `./build-tests/ai_file_sorter_tests "CategorizationService keeps the selected main category when the subcategory pass echoes another one"`
-
-#### Test case: CategorizationService falls back when the subcategory pass returns malformed JSON-like text
-Purpose: Prevent split-pass prompt formatting glitches from leaking literal wrapper text like `{ subcategory Software }` into cached category labels.
-Setup: Prepare a software-like file and a sequenced LLM stub that returns `Software`, then `{ subcategory Software }`, then a one-shot fallback response `Software : Version Control`.
-Procedure: Categorize the file through the service and inspect the final canonical labels and call count.
-Expected outcome: The malformed split-pass subcategory is rejected, the service falls back to one-shot categorization, and the final result is `Software : Version Control`.
-Run: `./build-tests/ai_file_sorter_tests "CategorizationService falls back when the subcategory pass returns malformed JSON-like text"`
-
-#### Test case: CategorizationService falls back when an artifact subcategory echoes another top-level family
-Purpose: Prevent software-artifact split responses like `{ subcategory Installers }` from collapsing driver or software files into generic artifact subcategories.
-Setup: Prepare a driver installer filename and a sequenced LLM stub that returns `Drivers`, then `{ subcategory Installers }`, then a one-shot fallback response `Drivers : Graphics Drivers`.
-Procedure: Categorize the file through the service and inspect the final canonical labels and call count.
-Expected outcome: The generic artifact-family subcategory is rejected, the service falls back to one-shot categorization, and the final result is `Drivers : Graphics Drivers`.
-Run: `./build-tests/ai_file_sorter_tests "CategorizationService falls back when an artifact subcategory echoes another top-level family"`
+#### Test case: CategorizationService uses one-shot categorization prompts for document files
+Purpose: Keep document categorization on the simpler single-pass prompt path while preserving the newer main-category guidance and normalization afterward.
+Setup: Prepare a summarized `.pdf` prompt override and a prompt-capturing LLM stub that returns `Documents : PCI DSS`.
+Procedure: Categorize the file through the service and inspect the captured categorization path and combined context.
+Expected outcome: The service performs one categorization call, the document summary stays attached to the prompt path, the combined context still includes document guidance plus allowed main categories, and no split-pass-only subcategory prompt text is present.
+Run: `./build-tests/ai_file_sorter_tests "CategorizationService uses one-shot categorization prompts for document files"`
 
 #### Test case: CategorizationService normalizes supported image main categories to Images
 Purpose: Prevent supported image files from fragmenting across topical main categories such as `Wildlife`, `Paris_Skyline`, or screenshot subject headings.

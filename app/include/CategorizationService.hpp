@@ -249,19 +249,6 @@ private:
         bool is_local_llm,
         const std::string& consistency_context) const;
     /**
-     * @brief Runs a generic prompt-completion request with the standard LLM timeout policy.
-     * @param llm LLM client used for the request.
-     * @param prompt Completion prompt to send.
-     * @param max_tokens Maximum tokens to request from the backend.
-     * @param is_local_llm True when using a local LLM backend.
-     * @return Raw LLM completion response.
-     */
-    std::string run_prompt_completion_with_timeout(
-        ILLMClient& llm,
-        const std::string& prompt,
-        int max_tokens,
-        bool is_local_llm) const;
-    /**
      * @brief Resolves the LLM timeout based on runtime and environment settings.
      * @param is_local_llm True when using a local LLM backend.
      * @return Timeout in seconds.
@@ -281,70 +268,6 @@ private:
                                               const std::string& item_path,
                                               FileType file_type,
                                               const std::string& consistency_context) const;
-    /**
-     * @brief Launches an asynchronous generic prompt-completion request.
-     * @param llm LLM client used for the request.
-     * @param prompt Completion prompt to send.
-     * @param max_tokens Maximum tokens to request from the backend.
-     * @return Future that yields the raw completion response.
-     */
-    std::future<std::string> start_prompt_completion_future(ILLMClient& llm,
-                                                            const std::string& prompt,
-                                                            int max_tokens) const;
-    /**
-     * @brief Determines the effective main-category candidate list for split categorization.
-     * @param prompt_name Name used in the categorization prompt.
-     * @param file_type File or directory being categorized.
-     * @return Ordered main-category candidates, or an empty list when split prompting should be skipped.
-     */
-    std::vector<std::string> determine_main_category_candidates(const std::string& prompt_name,
-                                                                FileType file_type) const;
-    /**
-     * @brief Attempts a two-pass categorization flow with separate main-category and subcategory prompts.
-     * @param llm LLM client used for the request.
-     * @param prompt_name Name used in the prompt.
-     * @param prompt_path Path/context payload used in the prompt.
-     * @param file_type File or directory being categorized.
-     * @param is_local_llm True when using a local LLM backend.
-     * @param consistency_context Combined prompt context used for the subcategory step.
-     * @return Selected main category and subcategory, or std::nullopt when the split flow should fall back.
-     */
-    std::optional<CategoryPair> categorize_via_split_prompts(
-        ILLMClient& llm,
-        const std::string& prompt_name,
-        const std::string& prompt_path,
-        FileType file_type,
-        bool is_local_llm,
-        const std::string& consistency_context) const;
-    /**
-     * @brief Builds the main-category-selection prompt for the first categorization pass.
-     * @param prompt_name Name used in the categorization prompt.
-     * @param prompt_path Path/context payload used in the categorization prompt.
-     * @param file_type File or directory being categorized.
-     * @param allowed_main_categories Ordered main-category candidates.
-     * @return Prompt instructing the model to return one allowed main category in JSON.
-     */
-    std::string build_main_category_selection_prompt(
-        const std::string& prompt_name,
-        const std::string& prompt_path,
-        FileType file_type,
-        const std::vector<std::string>& allowed_main_categories) const;
-    /**
-     * @brief Builds the subcategory-selection prompt for the second categorization pass.
-     * @param prompt_name Name used in the categorization prompt.
-     * @param prompt_path Path/context payload used in the categorization prompt.
-     * @param file_type File or directory being categorized.
-     * @param selected_main_category Main category fixed by the first pass.
-     * @param consistency_context Combined prompt context containing guidance and optional hints.
-     * @return Prompt instructing the model to return one subcategory in JSON.
-     */
-    std::string build_subcategory_selection_prompt(
-        const std::string& prompt_name,
-        const std::string& prompt_path,
-        FileType file_type,
-        const std::string& selected_main_category,
-        const std::string& consistency_context) const;
-
     /**
      * @brief Builds a whitelist context block for the prompt.
      * @return Whitelist prompt section.

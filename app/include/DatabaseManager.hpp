@@ -79,9 +79,10 @@ public:
                                             std::size_t limit) const;
     /**
      * @brief Clears all cached file and directory categorization rows.
+     * @param clear_taxonomy When true, also clears taxonomy, alias, and translation tables.
      * @return True when the cache rows were removed successfully.
      */
-    bool clear_all_categorizations();
+    bool clear_all_categorizations(bool clear_taxonomy = false);
     bool clear_directory_categorizations(const std::string& dir_path,
                                          bool recursive = false);
     bool has_categorization_style_conflict(const std::string& dir_path,
@@ -102,6 +103,15 @@ private:
     void initialize_taxonomy_schema();
     void load_taxonomy_cache();
     void load_translation_cache();
+    /**
+     * @brief Migrates legacy category and subcategory labels to current canonical taxonomy labels.
+     * @return True when any taxonomy, alias, translation, or cached file rows were updated.
+     */
+    bool migrate_legacy_taxonomy_labels();
+    /**
+     * @brief Recomputes taxonomy frequencies from cached file categorizations.
+     */
+    void refresh_taxonomy_frequencies();
     std::string normalize_label(const std::string& input) const;
     static double string_similarity(const std::string& a, const std::string& b);
     static std::string make_key(const std::string& norm_category,

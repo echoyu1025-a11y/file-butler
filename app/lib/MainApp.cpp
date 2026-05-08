@@ -1021,6 +1021,14 @@ void MainApp::sync_whitelists_to_learning_store()
         return;
     }
 
+    std::string error;
+    if (!user_learning_store_.remove_taxonomy_candidates_with_source_prefix("whitelist:", &error)) {
+        if (core_logger) {
+            core_logger->warn("Failed to clear whitelist taxonomy from user learning store: {}", error);
+        }
+        return;
+    }
+
     std::vector<UserLearningStore::TaxonomyCandidate> candidates;
     for (const auto& name : whitelist_store.list_names()) {
         const auto entry = whitelist_store.get(name);
@@ -1042,7 +1050,6 @@ void MainApp::sync_whitelists_to_learning_store()
         return;
     }
 
-    std::string error;
     if (!user_learning_store_.import_taxonomy_candidates(candidates, &error)) {
         if (core_logger) {
             core_logger->warn("Failed to import whitelist taxonomy into user learning store: {}", error);
@@ -2238,7 +2245,7 @@ void MainApp::show_cache_cleanup_dialog()
         settings.get_config_dir(),
         CacheMaintenanceService::Callbacks{
             .clear_categorization_cache = [this](std::string& error) {
-                if (!db_manager.clear_all_categorizations()) {
+                if (!db_manager.clear_all_categorizations(true)) {
                     error = tr("Failed to clear the categorization cache.").toStdString();
                     return false;
                 }

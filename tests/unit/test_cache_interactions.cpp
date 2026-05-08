@@ -261,7 +261,7 @@ TEST_CASE("CategorizationService falls back to LLM when cache is empty") {
     REQUIRE(categorized.size() == 1);
     CHECK(categorized.front().category == "Documents");
     CHECK(categorized.front().subcategory == "Reports");
-    CHECK(*calls == 2);
+    CHECK(*calls == 1);
 
     const auto cached = db.get_categorization_from_db(dir_path, file_name, FileType::File);
     REQUIRE(cached.size() == 2);
@@ -305,7 +305,7 @@ TEST_CASE("CategorizationService invokes completion callback per entry") {
     REQUIRE(categorized.size() == files.size());
     CHECK(queued_count == files.size());
     CHECK(completed_count == files.size());
-    CHECK(*calls == static_cast<int>(files.size() * 2));
+    CHECK(*calls == static_cast<int>(files.size()));
 }
 
 TEST_CASE("CategorizationService loads cached entries recursively for analysis") {

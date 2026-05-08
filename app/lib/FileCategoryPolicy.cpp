@@ -90,7 +90,7 @@ const std::vector<std::string>& archive_categories()
 
 const std::vector<std::string>& audio_categories()
 {
-    static const std::vector<std::string> categories = {"Music", "Other"};
+    static const std::vector<std::string> categories = {"Audio", "Other"};
     return categories;
 }
 
@@ -115,7 +115,7 @@ const std::vector<std::string>& font_categories()
 const std::vector<std::string>& generic_categories()
 {
     static const std::vector<std::string> categories = {
-        "Documents", "Images", "Videos", "Music", "Software", "Archives",
+        "Documents", "Images", "Videos", "Audio", "Software", "Archives",
         "Data Exports", "Configs", "Drivers", "Operating Systems", "Ebooks",
         "Fonts", "Other"
     };

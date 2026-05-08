@@ -27,11 +27,12 @@ struct NormalizedCategoryLabels {
 bool is_supported_artifact_file_name(const std::string& file_name);
 
 /**
- * @brief Normalizes software-like and archive-like labels into stable main buckets.
+ * @brief Applies structural normalization for software-like and archive-like labels.
  * @param file_name File name or path fragment to inspect.
  * @param category Parsed model category before normalization.
  * @param subcategory Parsed model subcategory before normalization.
- * @return Normalized labels when the artifact family is supported; `std::nullopt` otherwise.
+ * @return Canonicalized labels when the artifact family is supported and the main category is
+ *         a broad artifact-family label; `std::nullopt` otherwise.
  */
 std::optional<NormalizedCategoryLabels> normalize_category_labels(const std::string& file_name,
                                                                   const std::string& category,

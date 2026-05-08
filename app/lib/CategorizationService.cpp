@@ -43,6 +43,7 @@ constexpr size_t kMaxLabelLength = 80;
 constexpr std::string_view kImageDescriptionMarker = "\nImage description: ";
 constexpr std::string_view kDocumentSummaryMarker = "\nDocument summary: ";
 constexpr int kMinimumLearnedPreferenceScore = 12;
+constexpr int kCategoryTranslationCompletionTokens = 128;
 std::string to_lower_copy_str(std::string value);
 std::pair<std::string, std::string> split_category_subcategory(const std::string& input);
 std::string strip_code_fence(std::string output);
@@ -83,6 +84,12 @@ std::string first_line_copy(std::string value) {
         value.resize(newline);
     }
     return trim_copy(std::move(value));
+}
+
+bool is_whitelist_learning_source(const std::string& source) {
+    constexpr std::string_view kWhitelistSourcePrefix = "whitelist:";
+    return source.size() >= kWhitelistSourcePrefix.size() &&
+           source.compare(0, kWhitelistSourcePrefix.size(), kWhitelistSourcePrefix) == 0;
 }
 
 std::string strip_wrapping_punctuation(std::string value) {
@@ -397,75 +404,6 @@ std::vector<std::string> tokenize_prompt_text(const std::string& text)
     return tokens;
 }
 
-std::string strip_main_category_sections_for_subcategory_prompt(const std::string& context)
-{
-    if (context.empty()) {
-        return context;
-    }
-
-    enum class SkipSection {
-        None,
-        MainCategories,
-        CategoryCandidates
-    };
-
-    const auto starts_section = [](const std::string& line) {
-        return starts_with_case_insensitive(line,
-                                            "Allowed main categories") ||
-               starts_with_case_insensitive(line,
-                                            "Allowed category candidates");
-    };
-    const auto resumes_output = [](const std::string& line) {
-        return starts_with_case_insensitive(line,
-                                            "Allowed subcategories") ||
-               starts_with_case_insensitive(line,
-                                            "Allowed subcategory candidates");
-    };
-
-    std::ostringstream cleaned;
-    std::istringstream iss(context);
-    SkipSection skip = SkipSection::None;
-    bool wrote_line = false;
-    bool pending_blank_line = false;
-    for (std::string line; std::getline(iss, line); ) {
-        const std::string trimmed = trim_copy(line);
-        if (skip == SkipSection::None && starts_section(trimmed)) {
-            skip = starts_with_case_insensitive(trimmed, "Allowed main categories")
-                ? SkipSection::MainCategories
-                : SkipSection::CategoryCandidates;
-            continue;
-        }
-
-        if (skip != SkipSection::None) {
-            if (resumes_output(trimmed)) {
-                skip = SkipSection::None;
-            } else if (trimmed.empty()) {
-                skip = SkipSection::None;
-                pending_blank_line = wrote_line;
-                continue;
-            } else {
-                continue;
-            }
-        }
-
-        if (trimmed.empty()) {
-            pending_blank_line = wrote_line;
-            continue;
-        }
-
-        if (pending_blank_line && wrote_line) {
-            cleaned << "\n\n";
-        } else if (wrote_line) {
-            cleaned << "\n";
-        }
-        cleaned << line;
-        wrote_line = true;
-        pending_blank_line = false;
-    }
-
-    return cleaned.str();
-}
-
 int score_label_against_query(const std::string& label, const std::vector<std::string>& query_tokens)
 {
     if (label.empty() || query_tokens.empty()) {
@@ -586,147 +524,6 @@ std::string extract_base_prompt_path(const std::string& prompt_path) {
         return prompt_path;
     }
     return prompt_path.substr(0, newline);
-}
-
-std::string singularize_match_key(std::string value) {
-    const auto ends_with = [](std::string_view input, std::string_view suffix) {
-        return input.size() >= suffix.size() &&
-               input.substr(input.size() - suffix.size()) == suffix;
-    };
-
-    if (value.size() > 3 && ends_with(value, "ies")) {
-        value.resize(value.size() - 3);
-        value += 'y';
-        return value;
-    }
-    if (value.size() > 3 && value.back() == 's' && !ends_with(value, "ss")) {
-        value.pop_back();
-    }
-    return value;
-}
-
-std::string normalize_label_match_key(std::string value) {
-    value = to_lower_copy_str(normalize_candidate_label(std::move(value), true));
-    return singularize_match_key(std::move(value));
-}
-
-std::optional<std::string> match_allowed_label(const std::string& candidate,
-                                               const std::vector<std::string>& allowed) {
-    const std::string normalized_candidate = normalize_label_match_key(candidate);
-    if (normalized_candidate.empty()) {
-        return std::nullopt;
-    }
-
-    for (const auto& allowed_label : allowed) {
-        if (to_lower_copy_str(allowed_label) == to_lower_copy_str(normalize_candidate_label(candidate, true))) {
-            return allowed_label;
-        }
-    }
-
-    for (const auto& allowed_label : allowed) {
-        if (normalize_label_match_key(allowed_label) == normalized_candidate) {
-            return allowed_label;
-        }
-    }
-
-    return std::nullopt;
-}
-
-std::optional<std::string> parse_json_string_field(const std::string& response,
-                                                   std::string_view field_name) {
-    Json::Value root;
-    Json::CharReaderBuilder reader;
-    std::string errors;
-    std::istringstream stream(response);
-    if (!Json::parseFromStream(reader, stream, &root, &errors) || !root.isObject()) {
-        return std::nullopt;
-    }
-
-    const Json::Value value = root[std::string(field_name)];
-    if (!value.isString()) {
-        return std::nullopt;
-    }
-
-    const std::string normalized = Utils::sanitize_path_label(
-        normalize_candidate_label(value.asString(), field_name == "main_category" || field_name == "category"));
-    if (normalized.empty()) {
-        return std::nullopt;
-    }
-    return normalized;
-}
-
-std::string extract_selected_main_category(const std::string& response,
-                                           const std::vector<std::string>& allowed_main_categories) {
-    for (std::string_view field_name : {"main_category", "category", "subcategory"}) {
-        if (const auto value = parse_json_string_field(response, field_name)) {
-            if (const auto matched = match_allowed_label(*value, allowed_main_categories)) {
-                return *matched;
-            }
-        }
-    }
-
-    if (const auto value = extract_relaxed_labeled_value_from_response(
-            response,
-            {"main category", "category", "subcategory"},
-            true)) {
-        if (const auto matched = match_allowed_label(*value, allowed_main_categories)) {
-            return *matched;
-        }
-    }
-
-    auto [category, subcategory] = split_category_subcategory(response);
-    if (const auto matched = match_allowed_label(category, allowed_main_categories)) {
-        return *matched;
-    }
-    if (const auto matched = match_allowed_label(subcategory, allowed_main_categories)) {
-        return *matched;
-    }
-
-    std::istringstream iss(response);
-    std::string line;
-    while (std::getline(iss, line)) {
-        if (const auto matched = match_allowed_label(strip_list_prefix(std::move(line)), allowed_main_categories)) {
-            return *matched;
-        }
-    }
-
-    return {};
-}
-
-std::string extract_selected_subcategory(const std::string& response,
-                                         const std::string& selected_main_category) {
-    if (const auto value = parse_json_string_field(response, "subcategory")) {
-        if (normalize_label_match_key(*value) != normalize_label_match_key(selected_main_category)) {
-            return *value;
-        }
-    }
-
-    if (const auto value = extract_relaxed_labeled_value_from_response(
-            response,
-            {"subcategory", "sub category"},
-            false)) {
-        if (normalize_label_match_key(*value) != normalize_label_match_key(selected_main_category)) {
-            return *value;
-        }
-    }
-
-    auto [category, subcategory] = split_category_subcategory(response);
-    if (!subcategory.empty() &&
-        normalize_label_match_key(subcategory) != normalize_label_match_key(selected_main_category)) {
-        return subcategory;
-    }
-    if (!category.empty() &&
-        normalize_label_match_key(category) != normalize_label_match_key(selected_main_category)) {
-        return category;
-    }
-
-    if (const auto value = parse_json_string_field(response, "category")) {
-        if (normalize_label_match_key(*value) != normalize_label_match_key(selected_main_category)) {
-            return *value;
-        }
-    }
-
-    return {};
 }
 
 bool is_screenshot_like_image_context(const std::string& prompt_name,
@@ -927,84 +724,6 @@ std::pair<std::string, std::string> normalize_artifact_category_labels(
 // Returns the first allowed entry or an empty string when the list is empty.
 std::string first_allowed_or_blank(const std::vector<std::string>& allowed) {
     return allowed.empty() ? std::string() : allowed.front();
-}
-
-std::string build_subcategory_example_block(const std::string& prompt_name,
-                                            const std::string& prompt_path,
-                                            FileType file_type,
-                                            const std::string& selected_main_category)
-{
-    std::ostringstream examples;
-    const std::string normalized_main = to_lower_copy_str(trim_copy(selected_main_category));
-    const bool image_context = normalized_main == "images" || is_image_prompt_context(prompt_name, file_type);
-    const bool document_context =
-        is_document_prompt_context(prompt_name, file_type) ||
-        normalized_main == "documents" ||
-        normalized_main == "presentations" ||
-        normalized_main == "spreadsheets" ||
-        normalized_main == "data exports" ||
-        normalized_main == "configs";
-    const bool artifact_context =
-        ArtifactCategoryPolicy::is_supported_artifact_file_name(prompt_name) ||
-        normalized_main == "software" ||
-        normalized_main == "drivers" ||
-        normalized_main == "installers" ||
-        normalized_main == "operating systems" ||
-        normalized_main == "archives";
-
-    examples << "Examples:\n";
-    if (image_context) {
-        if (is_screenshot_like_image_context(prompt_name, prompt_path)) {
-            examples
-                << "- Good: Dashboard Interfaces\n"
-                << "- Good: Product Pages\n"
-                << "- Good: File Managers\n"
-                << "- Bad: Images Screenshot of software interface\n";
-        } else {
-            examples
-                << "- Good: Pets\n"
-                << "- Good: Small Mammals\n"
-                << "- Good: Wildlife\n"
-                << "- Bad: Images Pets\n"
-                << "- Bad: Images Animals Small Mammals\n";
-        }
-        examples
-            << "- Avoid caption-like phrases such as Newborn Animals when a simpler subject label fits better.\n";
-        return examples.str();
-    }
-
-    if (document_context) {
-        examples
-            << "- Good: PCI DSS\n"
-            << "- Good: Financial Documents\n"
-            << "- Good: Camera Guides\n"
-            << "- Bad: Documents - Financial Documents\n";
-        return examples.str();
-    }
-
-    if (artifact_context) {
-        if (normalized_main == "drivers") {
-            examples
-                << "- Good: Graphics Drivers\n"
-                << "- Bad: Software Drivers Graphics Drivers\n";
-        } else if (normalized_main == "installers") {
-            examples
-                << "- Good: Installer Builders\n"
-                << "- Bad: Software Installer Builders\n";
-        } else {
-            examples
-                << "- Good: Version Control\n"
-                << "- Good: Database Tools\n"
-                << "- Good: Installer Builders\n"
-                << "- Bad: Data Exports Installer Builders\n";
-        }
-        return examples.str();
-    }
-
-    examples
-        << "- Good: concise leaf labels such as Financial Reports, Version Control, or Wildlife.\n"
-        << "- Bad: labels that repeat the main category or stack multiple category levels.\n";
-    return examples.str();
 }
 
 std::vector<std::string> split_segments(const std::string& line, std::string_view delimiter) {
@@ -1539,189 +1258,6 @@ std::string CategorizationService::build_main_category_candidate_context(const s
     return oss.str();
 }
 
-std::vector<std::string> CategorizationService::determine_main_category_candidates(const std::string& prompt_name,
-                                                                                   FileType file_type) const
-{
-    if (file_type != FileType::File) {
-        return {};
-    }
-
-    if (settings.get_use_whitelist()) {
-        return settings.get_allowed_categories();
-    }
-
-    return FileCategoryPolicy::determine_main_category_selection(prompt_name, file_type).categories;
-}
-
-std::string CategorizationService::build_main_category_selection_prompt(
-    const std::string& prompt_name,
-    const std::string& prompt_path,
-    FileType file_type,
-    const std::vector<std::string>& allowed_main_categories) const
-{
-    std::ostringstream prompt;
-    const std::string language_block = build_category_language_context();
-    if (!language_block.empty()) {
-        prompt << language_block << "\n\n";
-    }
-
-    prompt << (file_type == FileType::File
-                   ? "Choose the best main category for this file.\n"
-                   : "Choose the best main category for this directory.\n");
-    prompt << "Return only one allowed main category label on a single line.\n";
-    prompt << "Rules:\n";
-    prompt << "- Pick exactly one label from the allowed main categories list.\n";
-    prompt << "- Do not return a subcategory.\n";
-    prompt << "- Do not use JSON, quotes, bullets, or labels.\n";
-    prompt << "- Do not explain.\n";
-    prompt << "- Keep the answer broad and filesystem-friendly.\n\n";
-    prompt << "Allowed main categories:\n";
-    for (std::size_t i = 0; i < allowed_main_categories.size(); ++i) {
-        prompt << (i + 1) << ") " << allowed_main_categories[i] << "\n";
-    }
-    if (std::find(allowed_main_categories.begin(), allowed_main_categories.end(), "Other") !=
-        allowed_main_categories.end()) {
-        prompt << "Use Other only when none of the listed categories clearly fits.\n";
-    }
-
-    const std::string base_path = extract_base_prompt_path(prompt_path);
-    prompt << "\n" << (file_type == FileType::File ? "File name: " : "Directory name: ")
-           << prompt_name << "\n";
-    if (!base_path.empty()) {
-        prompt << "Path: " << base_path << "\n";
-    }
-    if (is_image_prompt_context(prompt_name, file_type)) {
-        const std::string description = extract_image_description_text(prompt_path);
-        if (!description.empty()) {
-            prompt << "Image description: " << description << "\n";
-        }
-    } else if (is_document_prompt_context(prompt_name, file_type)) {
-        const std::string summary = extract_document_summary_text(prompt_path);
-        if (!summary.empty()) {
-            prompt << "Document summary: " << summary << "\n";
-        }
-    }
-
-    return prompt.str();
-}
-
-std::string CategorizationService::build_subcategory_selection_prompt(
-    const std::string& prompt_name,
-    const std::string& prompt_path,
-    FileType file_type,
-    const std::string& selected_main_category,
-    const std::string& consistency_context) const
-{
-    std::ostringstream prompt;
-    const std::string subcategory_context =
-        strip_main_category_sections_for_subcategory_prompt(consistency_context);
-    prompt << (file_type == FileType::File
-                   ? "Choose a specific subcategory for this file.\n"
-                   : "Choose a specific subcategory for this directory.\n");
-    prompt << "Return only the subcategory text on a single line.\n";
-    prompt << "Rules:\n";
-    prompt << "- The main category is already fixed to: " << selected_main_category << "\n";
-    prompt << "- Do not change or repeat the main category.\n";
-    prompt << "- If the context mentions Allowed subcategories, choose one of them.\n";
-    prompt << "- Do not use JSON, quotes, bullets, or labels.\n";
-    prompt << "- Do not explain.\n";
-    prompt << "- Keep the subcategory specific and concise.\n";
-    prompt << "- Think like naming a folder: prefer the shortest useful leaf label.\n";
-    prompt << "- Do not prepend the main category or another family label.\n";
-    prompt << "- Do not combine multiple category levels in one answer.\n";
-    prompt << "- Prefer one to three words when possible.\n\n";
-
-    prompt << build_subcategory_example_block(prompt_name,
-                                              prompt_path,
-                                              file_type,
-                                              selected_main_category)
-           << "\n";
-
-    const std::string base_path = extract_base_prompt_path(prompt_path);
-    prompt << (file_type == FileType::File ? "File name: " : "Directory name: ")
-           << prompt_name << "\n";
-    if (!base_path.empty()) {
-        prompt << "Path: " << base_path << "\n";
-    }
-    if (is_image_prompt_context(prompt_name, file_type)) {
-        const std::string description = extract_image_description_text(prompt_path);
-        if (!description.empty()) {
-            prompt << "Image description: " << description << "\n";
-        }
-    } else if (is_document_prompt_context(prompt_name, file_type)) {
-        const std::string summary = extract_document_summary_text(prompt_path);
-        if (!summary.empty()) {
-            prompt << "Document summary: " << summary << "\n";
-        }
-    }
-    if (!subcategory_context.empty()) {
-        prompt << "\n" << subcategory_context;
-    }
-
-    return prompt.str();
-}
-
-std::optional<CategorizationService::CategoryPair> CategorizationService::categorize_via_split_prompts(
-    ILLMClient& llm,
-    const std::string& prompt_name,
-    const std::string& prompt_path,
-    FileType file_type,
-    bool is_local_llm,
-    const std::string& consistency_context) const
-{
-    const auto allowed_main_categories = determine_main_category_candidates(prompt_name, file_type);
-    if (allowed_main_categories.empty()) {
-        return std::nullopt;
-    }
-
-    std::string selected_main_category;
-    if (allowed_main_categories.size() == 1) {
-        selected_main_category = allowed_main_categories.front();
-    } else {
-        const std::string main_prompt = build_main_category_selection_prompt(prompt_name,
-                                                                             prompt_path,
-                                                                             file_type,
-                                                                             allowed_main_categories);
-        const std::string main_response = run_prompt_completion_with_timeout(llm,
-                                                                             main_prompt,
-                                                                             48,
-                                                                             is_local_llm);
-        selected_main_category = extract_selected_main_category(main_response, allowed_main_categories);
-    }
-
-    if (selected_main_category.empty()) {
-        return std::nullopt;
-    }
-
-    const std::string subcategory_prompt = build_subcategory_selection_prompt(prompt_name,
-                                                                              prompt_path,
-                                                                              file_type,
-                                                                              selected_main_category,
-                                                                              consistency_context);
-    const std::string subcategory_response = run_prompt_completion_with_timeout(llm,
-                                                                                subcategory_prompt,
-                                                                                96,
-                                                                                is_local_llm);
-    const std::string selected_subcategory = extract_selected_subcategory(subcategory_response,
-                                                                          selected_main_category);
-    if (selected_subcategory.empty()) {
-        return std::nullopt;
-    }
-
-    if (ArtifactCategoryPolicy::is_supported_artifact_file_name(prompt_name)) {
-        if (const auto normalized = ArtifactCategoryPolicy::normalize_category_labels(
-                prompt_name,
-                selected_main_category,
-                selected_subcategory)) {
-            if (normalized->subcategory == "General") {
-                return std::nullopt;
-            }
-        }
-    }
-
-    return CategoryPair{selected_main_category, selected_subcategory};
-}
-
 std::string CategorizationService::build_whitelist_context_for_prompt(const std::string& prompt_name,
                                                                       const std::string& prompt_path) const
 {
@@ -1868,6 +1404,9 @@ std::string CategorizationService::build_learned_candidate_context(const std::st
 
     std::size_t emitted = 0;
     for (const auto& candidate : candidates) {
+        if (is_whitelist_learning_source(candidate.source)) {
+            continue;
+        }
         if (candidate.score < kMinimumLearnedPreferenceScore) {
             continue;
         }
@@ -1878,7 +1417,7 @@ std::string CategorizationService::build_learned_candidate_context(const std::st
             continue;
         }
         if (emitted == 0) {
-            oss << "User-learned category candidates from approved behavior and whitelists:\n";
+            oss << "User-learned category candidates from approved behavior:\n";
         }
         oss << (emitted + 1) << ") " << normalized_category;
         if (!normalized_subcategory.empty()) {
@@ -1916,7 +1455,9 @@ DatabaseManager::ResolvedCategory CategorizationService::prefer_learned_candidat
     }
 
     const auto candidates = user_learning_store_->retrieve_taxonomy_candidates(query, 1);
-    if (candidates.empty() || candidates.front().score < kMinimumLearnedPreferenceScore) {
+    if (candidates.empty() ||
+        is_whitelist_learning_source(candidates.front().source) ||
+        candidates.front().score < kMinimumLearnedPreferenceScore) {
         return resolved;
     }
 
@@ -2094,25 +1635,9 @@ DatabaseManager::ResolvedCategory CategorizationService::categorize_via_llm(
     const std::string& consistency_context) const
 {
     try {
-        std::string category;
-        std::string subcategory;
-
-        if (const auto split_result = categorize_via_split_prompts(llm,
-                                                                   prompt_name,
-                                                                   prompt_path,
-                                                                   file_type,
-                                                                   is_local_llm,
-                                                                   consistency_context)) {
-            category = split_result->first;
-            subcategory = split_result->second;
-        } else {
-            const std::string category_subcategory =
-                run_llm_with_timeout(llm, prompt_name, prompt_path, file_type, is_local_llm, consistency_context);
-            std::tie(category, subcategory) = split_category_subcategory(category_subcategory);
-            if (core_logger) {
-                core_logger->debug("Fell back to one-shot categorization for '{}'", display_name);
-            }
-        }
+        const std::string category_subcategory =
+            run_llm_with_timeout(llm, prompt_name, prompt_path, file_type, is_local_llm, consistency_context);
+        auto [category, subcategory] = split_category_subcategory(category_subcategory);
 
         const auto allowed_categories = settings.get_allowed_categories();
         const auto allowed_subcategories = settings.get_allowed_subcategories();
@@ -2380,24 +1905,26 @@ std::string CategorizationService::build_combined_context(const std::string& hin
     std::string combined_context;
     const auto allowed_categories = settings.get_allowed_categories();
     const auto allowed_subcategories = settings.get_allowed_subcategories();
+    const bool image_context = is_image_prompt_context(prompt_name, file_type);
+    const bool document_context = is_document_prompt_context(prompt_name, file_type);
+    const bool use_specialized_prompt_context = image_context || document_context;
     const bool large_whitelist =
         settings.get_use_whitelist() &&
         allowed_categories.size() + allowed_subcategories.size() > kLargeWhitelistPromptThreshold;
     const std::string whitelist_block = settings.get_use_whitelist()
         ? build_whitelist_context_for_prompt(prompt_name, prompt_path)
         : std::string();
-    const std::string learned_candidate_block = large_whitelist
+    const std::string learned_candidate_block = (!use_specialized_prompt_context || large_whitelist)
         ? std::string()
         : build_learned_candidate_context(prompt_name, prompt_path, file_type);
     const std::string language_block = build_category_language_context();
-    const std::string family_candidate_block =
-        build_main_category_candidate_context(prompt_name, file_type);
-    const bool image_context = is_image_prompt_context(prompt_name, file_type);
+    const std::string family_candidate_block = use_specialized_prompt_context
+        ? build_main_category_candidate_context(prompt_name, file_type)
+        : std::string();
     const bool rich_image_context =
         image_context && has_image_description_context(prompt_path);
-    const bool document_context = is_document_prompt_context(prompt_name, file_type);
     const bool artifact_context =
-        !image_context && !document_context &&
+        !use_specialized_prompt_context &&
         ArtifactCategoryPolicy::is_supported_artifact_file_name(prompt_name);
     std::string image_block;
     std::string document_block;
@@ -2463,14 +1990,14 @@ std::string CategorizationService::build_combined_context(const std::string& hin
         document_block = document_guidance.str();
     }
 
-    if (artifact_context) {
+    if (artifact_context && settings.get_use_whitelist()) {
         std::ostringstream artifact_guidance;
         artifact_guidance
             << "Software and archive artifact guidance:\n"
             << "- Keep the main category stable and filesystem-oriented.\n"
             << "- Use the main category for the broad family, and put the specific software purpose in the subcategory.\n"
-            << "- Keep the subcategory concise and leaf-like: prefer labels such as Version Control, Database Tools, Graphics Drivers, or Installer Builders, and do not stack multiple family labels.\n"
-            << "- Prefer specific subcategories like Version Control, Database Tools, Screen Recording, Process Monitoring, Graphics Drivers, Virtualization, or Installer Builders when they fit.\n"
+            << "- Keep the subcategory concise and leaf-like: prefer labels such as Version Control, Database Tools, Graphics Drivers, or Installer Tools, and do not stack multiple family labels.\n"
+            << "- Prefer specific subcategories like Version Control, Database Tools, Screen Recording, Process Monitoring, Graphics Drivers, Virtualization, or Installer Tools when they fit.\n"
             << "- Do not answer with a generic subcategory that merely repeats the main category or another top-level family like Software, Installers, Drivers, Operating Systems, Archives, Data Exports, or Other.\n"
             << "- Use the filename, extension, and directory context as supporting clues.\n";
         artifact_block = artifact_guidance.str();
@@ -2579,7 +2106,8 @@ std::optional<DatabaseManager::ResolvedCategory> CategorizationService::translat
         resolved.subcategory);
 
     try {
-        const std::string response = llm.complete_prompt(prompt, 128);
+        const std::string response =
+            llm.complete_prompt(prompt, kCategoryTranslationCompletionTokens);
         const auto translated = parse_translated_category_response(response);
         if (!translated) {
             return std::nullopt;
@@ -2719,22 +2247,6 @@ std::string CategorizationService::run_llm_with_timeout(
     return future.get();
 }
 
-std::string CategorizationService::run_prompt_completion_with_timeout(
-    ILLMClient& llm,
-    const std::string& prompt,
-    int max_tokens,
-    bool is_local_llm) const
-{
-    const int timeout_seconds = resolve_llm_timeout(is_local_llm);
-    auto future = start_prompt_completion_future(llm, prompt, max_tokens);
-
-    if (future.wait_for(std::chrono::seconds(timeout_seconds)) == std::future_status::timeout) {
-        throw std::runtime_error("Timed out waiting for LLM response");
-    }
-
-    return future.get();
-}
-
 int CategorizationService::resolve_llm_timeout(bool is_local_llm) const
 {
     int timeout_seconds = is_local_llm ? 60 : 10;
@@ -2782,29 +2294,6 @@ std::future<std::string> CategorizationService::start_llm_future(
     std::thread([&llm, promise, item_name, item_path, file_type, consistency_context]() mutable {
         try {
             promise->set_value(llm.categorize_file(item_name, item_path, file_type, consistency_context));
-        } catch (...) {
-            try {
-                promise->set_exception(std::current_exception());
-            } catch (...) {
-                // no-op
-            }
-        }
-    }).detach();
-
-    return future;
-}
-
-std::future<std::string> CategorizationService::start_prompt_completion_future(
-    ILLMClient& llm,
-    const std::string& prompt,
-    int max_tokens) const
-{
-    auto promise = std::make_shared<std::promise<std::string>>();
-    std::future<std::string> future = promise->get_future();
-
-    std::thread([&llm, promise, prompt, max_tokens]() mutable {
-        try {
-            promise->set_value(llm.complete_prompt(prompt, max_tokens));
         } catch (...) {
             try {
                 promise->set_exception(std::current_exception());

@@ -22,6 +22,55 @@
 
 namespace {
 constexpr double kSimilarityThreshold = 0.85;
+constexpr char kLegacyMusicCategoryNormalized[] = "music";
+constexpr char kCanonicalAudioCategoryNormalized[] = "audio";
+constexpr char kCanonicalAudioCategoryDisplay[] = "Audio";
+constexpr char kLegacyInstallerBuildersNormalized[] = "installer builders";
+constexpr char kCanonicalInstallerToolsNormalized[] = "installer tools";
+constexpr char kCanonicalInstallerToolsDisplay[] = "Installer Tools";
+constexpr char kArchivesCategoryNormalized[] = "archives";
+constexpr char kArchivesCategoryDisplay[] = "Archives";
+constexpr char kDataExportsCategoryNormalized[] = "data exports";
+constexpr char kDataExportsCategoryDisplay[] = "Data Exports";
+constexpr char kDocumentsCategoryNormalized[] = "documents";
+constexpr char kDocumentsCategoryDisplay[] = "Documents";
+constexpr char kDriversCategoryNormalized[] = "drivers";
+constexpr char kDriversCategoryDisplay[] = "Drivers";
+constexpr char kFontsCategoryNormalized[] = "fonts";
+constexpr char kFontsCategoryDisplay[] = "Fonts";
+constexpr char kImagesCategoryNormalized[] = "images";
+constexpr char kImagesCategoryDisplay[] = "Images";
+constexpr char kInstallersCategoryNormalized[] = "installers";
+constexpr char kInstallersCategoryDisplay[] = "Installers";
+constexpr char kOperatingSystemsCategoryNormalized[] = "operating systems";
+constexpr char kOperatingSystemsCategoryDisplay[] = "Operating Systems";
+constexpr char kPresentationsCategoryNormalized[] = "presentations";
+constexpr char kPresentationsCategoryDisplay[] = "Presentations";
+constexpr char kSoftwareCategoryNormalized[] = "software";
+constexpr char kSoftwareCategoryDisplay[] = "Software";
+constexpr char kSpreadsheetsCategoryNormalized[] = "spreadsheets";
+constexpr char kSpreadsheetsCategoryDisplay[] = "Spreadsheets";
+constexpr char kVideosCategoryNormalized[] = "videos";
+constexpr char kVideosCategoryDisplay[] = "Videos";
+
+bool apply_legacy_display_label_migrations(const std::string& normalized_category,
+                                           const std::string& normalized_subcategory,
+                                           std::string& category,
+                                           std::string& subcategory) {
+    bool changed = false;
+
+    if (normalized_category == kLegacyMusicCategoryNormalized) {
+        category = kCanonicalAudioCategoryDisplay;
+        changed = true;
+    }
+
+    if (normalized_subcategory == kLegacyInstallerBuildersNormalized) {
+        subcategory = kCanonicalInstallerToolsDisplay;
+        changed = true;
+    }
+
+    return changed;
+}
 
 template <typename... Args>
 void db_log(spdlog::level::level_enum level, const char* fmt, Args&&... args) {
@@ -201,6 +250,9 @@ DatabaseManager::DatabaseManager(std::string config_dir)
     initialize_schema();
     initialize_taxonomy_schema();
     load_taxonomy_cache();
+    if (migrate_legacy_taxonomy_labels()) {
+        load_taxonomy_cache();
+    }
     load_translation_cache();
 }
 
@@ -457,6 +509,259 @@ void DatabaseManager::load_translation_cache() {
     }
 }
 
+bool DatabaseManager::migrate_legacy_taxonomy_labels() {
+    if (!db) {
+        return false;
+    }
+
+    struct LegacyTaxonomyRow {
+        int id;
+        std::string category;
+        std::string subcategory;
+        std::string normalized_category;
+        std::string normalized_subcategory;
+    };
+
+    struct LegacyFileRow {
+        int id;
+        std::string category;
+        std::string subcategory;
+    };
+
+    const auto update_file_row = [&](int row_id,
+                                     const std::string& category,
+                                     const std::string& subcategory,
+                                     int taxonomy_id) -> bool {
+        static constexpr char kUpdateFileSql[] =
+            "UPDATE file_categorization SET category = ?, subcategory = ?, taxonomy_id = ? WHERE id = ?;";
+        StatementPtr update_stmt = prepare_statement(db, kUpdateFileSql);
+        if (!update_stmt) {
+            db_log(spdlog::level::err, "Failed to prepare file migration update: {}", sqlite3_errmsg(db));
+            return false;
+        }
+
+        sqlite3_bind_text(update_stmt.get(), 1, category.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text(update_stmt.get(), 2, subcategory.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int(update_stmt.get(), 3, taxonomy_id);
+        sqlite3_bind_int(update_stmt.get(), 4, row_id);
+        if (sqlite3_step(update_stmt.get()) != SQLITE_DONE) {
+            db_log(spdlog::level::err, "Failed to update migrated file row {}: {}", row_id, sqlite3_errmsg(db));
+            return false;
+        }
+
+        return true;
+    };
+
+    const auto retarget_legacy_taxonomy = [&](const LegacyTaxonomyRow& legacy_row,
+                                              const ResolvedCategory& target) -> bool {
+        ensure_alias_mapping(target.taxonomy_id,
+                             legacy_row.normalized_category,
+                             legacy_row.normalized_subcategory);
+
+        static constexpr char kMoveAliasesSql[] =
+            "UPDATE OR IGNORE category_alias SET taxonomy_id = ? WHERE taxonomy_id = ?;";
+        StatementPtr move_aliases_stmt = prepare_statement(db, kMoveAliasesSql);
+        if (!move_aliases_stmt) {
+            db_log(spdlog::level::err, "Failed to prepare alias migration: {}", sqlite3_errmsg(db));
+            return false;
+        }
+        sqlite3_bind_int(move_aliases_stmt.get(), 1, target.taxonomy_id);
+        sqlite3_bind_int(move_aliases_stmt.get(), 2, legacy_row.id);
+        if (sqlite3_step(move_aliases_stmt.get()) != SQLITE_DONE) {
+            db_log(spdlog::level::err, "Failed to migrate aliases for taxonomy {}: {}", legacy_row.id, sqlite3_errmsg(db));
+            return false;
+        }
+
+        static constexpr char kDeleteLegacyTranslationsSql[] =
+            "DELETE FROM category_translation WHERE taxonomy_id = ?;";
+        StatementPtr delete_translations_stmt = prepare_statement(db, kDeleteLegacyTranslationsSql);
+        if (!delete_translations_stmt) {
+            db_log(spdlog::level::err, "Failed to prepare translation cleanup: {}", sqlite3_errmsg(db));
+            return false;
+        }
+        sqlite3_bind_int(delete_translations_stmt.get(), 1, legacy_row.id);
+        if (sqlite3_step(delete_translations_stmt.get()) != SQLITE_DONE) {
+            db_log(spdlog::level::err, "Failed to delete legacy translations for taxonomy {}: {}", legacy_row.id, sqlite3_errmsg(db));
+            return false;
+        }
+
+        static constexpr char kRetargetTaxonomyReferencesSql[] =
+            "UPDATE file_categorization SET taxonomy_id = ? WHERE taxonomy_id = ?;";
+        StatementPtr retarget_files_stmt = prepare_statement(db, kRetargetTaxonomyReferencesSql);
+        if (!retarget_files_stmt) {
+            db_log(spdlog::level::err, "Failed to prepare taxonomy reference migration: {}", sqlite3_errmsg(db));
+            return false;
+        }
+        sqlite3_bind_int(retarget_files_stmt.get(), 1, target.taxonomy_id);
+        sqlite3_bind_int(retarget_files_stmt.get(), 2, legacy_row.id);
+        if (sqlite3_step(retarget_files_stmt.get()) != SQLITE_DONE) {
+            db_log(spdlog::level::err, "Failed to retarget cached rows from taxonomy {}: {}", legacy_row.id, sqlite3_errmsg(db));
+            return false;
+        }
+
+        static constexpr char kDeleteLegacyTaxonomySql[] =
+            "DELETE FROM category_taxonomy WHERE id = ?;";
+        StatementPtr delete_taxonomy_stmt = prepare_statement(db, kDeleteLegacyTaxonomySql);
+        if (!delete_taxonomy_stmt) {
+            db_log(spdlog::level::err, "Failed to prepare taxonomy cleanup: {}", sqlite3_errmsg(db));
+            return false;
+        }
+        sqlite3_bind_int(delete_taxonomy_stmt.get(), 1, legacy_row.id);
+        if (sqlite3_step(delete_taxonomy_stmt.get()) != SQLITE_DONE) {
+            db_log(spdlog::level::err, "Failed to delete legacy taxonomy row {}: {}", legacy_row.id, sqlite3_errmsg(db));
+            return false;
+        }
+
+        return true;
+    };
+
+    std::vector<LegacyTaxonomyRow> legacy_taxonomy_rows;
+    static constexpr char kSelectLegacyTaxonomySql[] =
+        "SELECT id, canonical_category, canonical_subcategory, normalized_category, normalized_subcategory "
+        "FROM category_taxonomy "
+        "WHERE normalized_category = ? OR normalized_subcategory = ?;";
+    StatementPtr taxonomy_stmt = prepare_statement(db, kSelectLegacyTaxonomySql);
+    if (!taxonomy_stmt) {
+        db_log(spdlog::level::err, "Failed to prepare legacy taxonomy scan: {}", sqlite3_errmsg(db));
+        return false;
+    }
+    sqlite3_bind_text(taxonomy_stmt.get(), 1, kLegacyMusicCategoryNormalized, -1, SQLITE_STATIC);
+    sqlite3_bind_text(taxonomy_stmt.get(), 2, kLegacyInstallerBuildersNormalized, -1, SQLITE_STATIC);
+    while (sqlite3_step(taxonomy_stmt.get()) == SQLITE_ROW) {
+        const char* category_text = reinterpret_cast<const char*>(sqlite3_column_text(taxonomy_stmt.get(), 1));
+        const char* subcategory_text = reinterpret_cast<const char*>(sqlite3_column_text(taxonomy_stmt.get(), 2));
+        const char* normalized_category_text = reinterpret_cast<const char*>(sqlite3_column_text(taxonomy_stmt.get(), 3));
+        const char* normalized_subcategory_text = reinterpret_cast<const char*>(sqlite3_column_text(taxonomy_stmt.get(), 4));
+        legacy_taxonomy_rows.push_back({
+            sqlite3_column_int(taxonomy_stmt.get(), 0),
+            category_text ? category_text : "",
+            subcategory_text ? subcategory_text : "",
+            normalized_category_text ? normalized_category_text : "",
+            normalized_subcategory_text ? normalized_subcategory_text : "",
+        });
+    }
+
+    std::vector<LegacyFileRow> legacy_file_rows;
+    static constexpr char kSelectLegacyFilesSql[] =
+        "SELECT id, category, subcategory "
+        "FROM file_categorization "
+        "WHERE lower(trim(category)) = ? OR lower(trim(subcategory)) = ?;";
+    StatementPtr file_stmt = prepare_statement(db, kSelectLegacyFilesSql);
+    if (!file_stmt) {
+        db_log(spdlog::level::err, "Failed to prepare legacy file scan: {}", sqlite3_errmsg(db));
+        return false;
+    }
+    sqlite3_bind_text(file_stmt.get(), 1, kLegacyMusicCategoryNormalized, -1, SQLITE_STATIC);
+    sqlite3_bind_text(file_stmt.get(), 2, kLegacyInstallerBuildersNormalized, -1, SQLITE_STATIC);
+    while (sqlite3_step(file_stmt.get()) == SQLITE_ROW) {
+        const char* category_text = reinterpret_cast<const char*>(sqlite3_column_text(file_stmt.get(), 1));
+        const char* subcategory_text = reinterpret_cast<const char*>(sqlite3_column_text(file_stmt.get(), 2));
+        legacy_file_rows.push_back({
+            sqlite3_column_int(file_stmt.get(), 0),
+            category_text ? category_text : "",
+            subcategory_text ? subcategory_text : "",
+        });
+    }
+
+    if (legacy_taxonomy_rows.empty() && legacy_file_rows.empty()) {
+        return false;
+    }
+
+    taxonomy_stmt.reset();
+    file_stmt.reset();
+
+    char* error_msg = nullptr;
+    if (sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION;", nullptr, nullptr, &error_msg) != SQLITE_OK) {
+        db_log(spdlog::level::err, "Failed to begin legacy taxonomy migration: {}", error_msg ? error_msg : sqlite3_errmsg(db));
+        sqlite3_free(error_msg);
+        return false;
+    }
+
+    bool changed = false;
+    bool success = true;
+
+    for (const auto& legacy_row : legacy_taxonomy_rows) {
+        std::string target_category = legacy_row.category;
+        std::string target_subcategory = legacy_row.subcategory;
+        if (!apply_legacy_display_label_migrations(legacy_row.normalized_category,
+                                                   legacy_row.normalized_subcategory,
+                                                   target_category,
+                                                   target_subcategory)) {
+            continue;
+        }
+
+        const ResolvedCategory target = resolve_category(target_category, target_subcategory);
+        if (target.taxonomy_id <= 0 || !retarget_legacy_taxonomy(legacy_row, target)) {
+            success = false;
+            break;
+        }
+        changed = true;
+    }
+
+    for (const auto& legacy_row : legacy_file_rows) {
+        if (!success) {
+            break;
+        }
+
+        const std::string normalized_category = normalize_label(legacy_row.category);
+        const std::string normalized_subcategory = normalize_label(legacy_row.subcategory);
+        std::string target_category = legacy_row.category;
+        std::string target_subcategory = legacy_row.subcategory;
+        if (!apply_legacy_display_label_migrations(normalized_category,
+                                                   normalized_subcategory,
+                                                   target_category,
+                                                   target_subcategory)) {
+            continue;
+        }
+
+        const ResolvedCategory target = resolve_category(target_category, target_subcategory);
+        if (target.taxonomy_id <= 0 ||
+            !update_file_row(legacy_row.id, target.category, target.subcategory, target.taxonomy_id)) {
+            success = false;
+            break;
+        }
+        changed = true;
+    }
+
+    if (success) {
+        refresh_taxonomy_frequencies();
+    }
+
+    const char* finish_sql = success ? "COMMIT;" : "ROLLBACK;";
+    if (sqlite3_exec(db, finish_sql, nullptr, nullptr, &error_msg) != SQLITE_OK) {
+        db_log(spdlog::level::err, "Failed to finish legacy taxonomy migration: {}", error_msg ? error_msg : sqlite3_errmsg(db));
+        sqlite3_free(error_msg);
+        return false;
+    }
+    if (error_msg) {
+        sqlite3_free(error_msg);
+    }
+
+    if (!success) {
+        return false;
+    }
+
+    if (changed) {
+        db_log(spdlog::level::info, "Migrated legacy taxonomy labels to canonical Audio/Installer Tools labels");
+    }
+    return changed;
+}
+
+void DatabaseManager::refresh_taxonomy_frequencies() {
+    if (!db) {
+        return;
+    }
+
+    static constexpr char kRefreshFrequenciesSql[] =
+        "UPDATE category_taxonomy "
+        "SET frequency = (SELECT COUNT(*) FROM file_categorization WHERE taxonomy_id = category_taxonomy.id);";
+    char* error_msg = nullptr;
+    if (sqlite3_exec(db, kRefreshFrequenciesSql, nullptr, nullptr, &error_msg) != SQLITE_OK) {
+        db_log(spdlog::level::err, "Failed to refresh taxonomy frequencies: {}", error_msg ? error_msg : sqlite3_errmsg(db));
+        sqlite3_free(error_msg);
+    }
+}
+
 std::string DatabaseManager::normalize_label(const std::string &input) const {
     std::string result;
     result.reserve(input.size());
@@ -540,6 +845,59 @@ struct CanonicalCategoryLabel {
     std::string normalized;
     std::string display;
 };
+
+std::optional<CanonicalCategoryLabel> canonicalize_broad_main_label(const std::string& normalized_label)
+{
+    static const std::unordered_map<std::string, CanonicalCategoryLabel> kBroadMainLabels = {
+        {"archive", {kArchivesCategoryNormalized, kArchivesCategoryDisplay}},
+        {"archives", {kArchivesCategoryNormalized, kArchivesCategoryDisplay}},
+        {"audio", {kCanonicalAudioCategoryNormalized, kCanonicalAudioCategoryDisplay}},
+        {"audio file", {kCanonicalAudioCategoryNormalized, kCanonicalAudioCategoryDisplay}},
+        {"audio files", {kCanonicalAudioCategoryNormalized, kCanonicalAudioCategoryDisplay}},
+        {"config", {"configs", "Configs"}},
+        {"configs", {"configs", "Configs"}},
+        {"configuration", {"configs", "Configs"}},
+        {"configurations", {"configs", "Configs"}},
+        {"data export", {kDataExportsCategoryNormalized, kDataExportsCategoryDisplay}},
+        {"data exports", {kDataExportsCategoryNormalized, kDataExportsCategoryDisplay}},
+        {"document", {kDocumentsCategoryNormalized, kDocumentsCategoryDisplay}},
+        {"documents", {kDocumentsCategoryNormalized, kDocumentsCategoryDisplay}},
+        {"doc", {kDocumentsCategoryNormalized, kDocumentsCategoryDisplay}},
+        {"docs", {kDocumentsCategoryNormalized, kDocumentsCategoryDisplay}},
+        {"driver", {kDriversCategoryNormalized, kDriversCategoryDisplay}},
+        {"drivers", {kDriversCategoryNormalized, kDriversCategoryDisplay}},
+        {"ebook", {"ebooks", "Ebooks"}},
+        {"ebooks", {"ebooks", "Ebooks"}},
+        {"font", {kFontsCategoryNormalized, kFontsCategoryDisplay}},
+        {"fonts", {kFontsCategoryNormalized, kFontsCategoryDisplay}},
+        {"image", {kImagesCategoryNormalized, kImagesCategoryDisplay}},
+        {"images", {kImagesCategoryNormalized, kImagesCategoryDisplay}},
+        {"installer", {kInstallersCategoryNormalized, kInstallersCategoryDisplay}},
+        {"installers", {kInstallersCategoryNormalized, kInstallersCategoryDisplay}},
+        {"installation", {kInstallersCategoryNormalized, kInstallersCategoryDisplay}},
+        {"installations", {kInstallersCategoryNormalized, kInstallersCategoryDisplay}},
+        {"operating system", {kOperatingSystemsCategoryNormalized, kOperatingSystemsCategoryDisplay}},
+        {"operating systems", {kOperatingSystemsCategoryNormalized, kOperatingSystemsCategoryDisplay}},
+        {"presentation", {kPresentationsCategoryNormalized, kPresentationsCategoryDisplay}},
+        {"presentations", {kPresentationsCategoryNormalized, kPresentationsCategoryDisplay}},
+        {"software", {kSoftwareCategoryNormalized, kSoftwareCategoryDisplay}},
+        {"spreadsheet", {kSpreadsheetsCategoryNormalized, kSpreadsheetsCategoryDisplay}},
+        {"spreadsheets", {kSpreadsheetsCategoryNormalized, kSpreadsheetsCategoryDisplay}},
+        {"video", {kVideosCategoryNormalized, kVideosCategoryDisplay}},
+        {"videos", {kVideosCategoryNormalized, kVideosCategoryDisplay}}
+    };
+
+    if (auto it = kBroadMainLabels.find(normalized_label); it != kBroadMainLabels.end()) {
+        return it->second;
+    }
+
+    const std::string stripped_label = strip_trailing_stopwords(normalized_label);
+    if (auto it = kBroadMainLabels.find(stripped_label); it != kBroadMainLabels.end()) {
+        return it->second;
+    }
+
+    return std::nullopt;
+}
 
 struct SemanticFamily {
     std::string canonical_category_normalized;
@@ -633,25 +991,6 @@ const std::vector<SemanticFamily>& semantic_families() {
             "spreadsheets", "Spreadsheets", "documents",
             {"spreadsheet", "spreadsheets", "worksheet", "worksheets"},
             {"document", "documents", "doc", "docs", "text", "texts", "paper", "papers", "office file", "office files", "table", "tables"}
-        },
-        {
-            "drivers", "Drivers", "software",
-            {"driver", "drivers"},
-            {"software", "application", "applications", "app", "apps", "program", "programs"}
-        },
-        {
-            "firmware", "Firmware", "software",
-            {"firmware"},
-            {"software", "application", "applications", "app", "apps", "program", "programs"}
-        },
-        {
-            "installers", "Installers", "software",
-            {"installer", "installers", "installation", "installations",
-             "installation file", "installation files",
-             "software installation", "software installations",
-             "software installation file", "software installation files",
-             "setup", "setups", "setup file", "setup files"},
-            {"software", "application", "applications", "app", "apps", "program", "programs"}
         }
     };
     return kFamilies;
@@ -701,9 +1040,15 @@ bool is_image_like_label(const std::string& normalized) {
 
 CanonicalCategoryLabel canonicalize_category_label(const std::string& normalized_category,
                                                    const std::string& normalized_subcategory) {
+    if (const auto broad_main = canonicalize_broad_main_label(normalized_category)) {
+        return *broad_main;
+    }
+
     static const std::unordered_map<std::string, CanonicalCategoryLabel> kCategorySynonyms = {
-        {"archive", {"archives", "Archives"}},
-        {"archives", {"archives", "Archives"}},
+        {"audio", {kCanonicalAudioCategoryNormalized, kCanonicalAudioCategoryDisplay}},
+        {"audio file", {kCanonicalAudioCategoryNormalized, kCanonicalAudioCategoryDisplay}},
+        {"audio files", {kCanonicalAudioCategoryNormalized, kCanonicalAudioCategoryDisplay}},
+        {"music", {kCanonicalAudioCategoryNormalized, kCanonicalAudioCategoryDisplay}},
 
         {"document", {"documents", "Documents"}},
         {"documents", {"documents", "Documents"}},
@@ -718,7 +1063,6 @@ CanonicalCategoryLabel canonicalize_category_label(const std::string& normalized
         {"office file", {"documents", "Documents"}},
         {"office files", {"documents", "Documents"}},
 
-        {"software", {"software", "Software"}},
         {"application", {"software", "Software"}},
         {"applications", {"software", "Software"}},
         {"app", {"software", "Software"}},
@@ -736,8 +1080,6 @@ CanonicalCategoryLabel canonicalize_category_label(const std::string& normalized
         {"updater", {"software", "Software"}},
         {"updaters", {"software", "Software"}},
 
-        {"image", {"images", "Images"}},
-        {"images", {"images", "Images"}},
         {"image file", {"images", "Images"}},
         {"image files", {"images", "Images"}},
         {"photo", {"images", "Images"}},
@@ -1037,6 +1379,18 @@ DatabaseManager::resolve_category(const std::string &category,
     norm_category = canonical_category.normalized;
     if (!canonical_category.display.empty()) {
         trimmed_category = canonical_category.display;
+    }
+
+    if (norm_subcategory == kLegacyInstallerBuildersNormalized) {
+        trimmed_subcategory = kCanonicalInstallerToolsDisplay;
+        norm_subcategory = kCanonicalInstallerToolsNormalized;
+    }
+
+    if (const auto canonical_subcategory = canonicalize_broad_main_label(norm_subcategory);
+        canonical_subcategory.has_value() &&
+        canonical_subcategory->normalized == norm_category) {
+        trimmed_subcategory = "General";
+        norm_subcategory = normalize_label(trimmed_subcategory);
     }
 
     if (const SemanticFamily* family_from_category = find_semantic_family(norm_category)) {
@@ -1354,17 +1708,24 @@ bool DatabaseManager::clear_directory_categorizations(const std::string& dir_pat
     return success;
 }
 
-bool DatabaseManager::clear_all_categorizations()
+bool DatabaseManager::clear_all_categorizations(bool clear_taxonomy)
 {
     if (!db) {
         return false;
     }
 
     char* error_msg = nullptr;
-    const char* delete_sql = "DELETE FROM file_categorization;";
+    const char* delete_sql = clear_taxonomy
+        ? "DELETE FROM category_translation;"
+          "DELETE FROM category_alias;"
+          "DELETE FROM category_taxonomy;"
+          "DELETE FROM file_categorization;"
+        : "DELETE FROM file_categorization;";
     if (sqlite3_exec(db, delete_sql, nullptr, nullptr, &error_msg) != SQLITE_OK) {
         db_log(spdlog::level::err,
-               "Failed to clear cached categorizations: {}",
+               clear_taxonomy
+                   ? "Failed to clear cached categorizations and taxonomy: {}"
+                   : "Failed to clear cached categorizations: {}",
                error_msg ? error_msg : sqlite3_errmsg(db));
         if (error_msg) {
             sqlite3_free(error_msg);
@@ -1372,11 +1733,14 @@ bool DatabaseManager::clear_all_categorizations()
         return false;
     }
 
-    const char* reset_sequence_sql =
-        "DELETE FROM sqlite_sequence WHERE name = 'file_categorization';";
+    const char* reset_sequence_sql = clear_taxonomy
+        ? "DELETE FROM sqlite_sequence WHERE name IN ('file_categorization', 'category_taxonomy');"
+        : "DELETE FROM sqlite_sequence WHERE name = 'file_categorization';";
     if (sqlite3_exec(db, reset_sequence_sql, nullptr, nullptr, &error_msg) != SQLITE_OK) {
         db_log(spdlog::level::warn,
-               "Failed to reset categorization cache sequence: {}",
+               clear_taxonomy
+                   ? "Failed to reset categorization cache/taxonomy sequence: {}"
+                   : "Failed to reset categorization cache sequence: {}",
                error_msg ? error_msg : sqlite3_errmsg(db));
         if (error_msg) {
             sqlite3_free(error_msg);
@@ -1395,6 +1759,14 @@ bool DatabaseManager::clear_all_categorizations()
     }
 
     cached_results.clear();
+    if (clear_taxonomy) {
+        taxonomy_entries.clear();
+        canonical_lookup.clear();
+        alias_lookup.clear();
+        taxonomy_index.clear();
+        translation_entries.clear();
+        translation_lookup.clear();
+    }
     return true;
 }
 

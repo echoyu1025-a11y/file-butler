@@ -180,6 +180,14 @@ public:
     bool import_taxonomy_candidates(const std::vector<TaxonomyCandidate>& candidates,
                                     std::string* error = nullptr);
     /**
+     * @brief Remove non-approved taxonomy candidates whose source starts with the given prefix.
+     * @param source_prefix Prefix to match, for example `whitelist:`.
+     * @param error Optional output for a human-readable failure reason.
+     * @return True when matching imported candidates were removed successfully.
+     */
+    bool remove_taxonomy_candidates_with_source_prefix(const std::string& source_prefix,
+                                                       std::string* error = nullptr);
+    /**
      * @brief Find a learned taxonomy entry by category/subcategory labels.
      * @param category Category label to resolve.
      * @param subcategory Subcategory label to resolve.

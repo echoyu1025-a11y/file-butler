@@ -444,6 +444,69 @@ bool UserLearningStore::import_taxonomy_candidates(const std::vector<TaxonomyCan
     return success;
 }
 
+bool UserLearningStore::remove_taxonomy_candidates_with_source_prefix(const std::string& source_prefix,
+                                                                      std::string* error)
+{
+    if (!db_) {
+        if (error) {
+            *error = "User learning database is not open.";
+        }
+        return false;
+    }
+    if (source_prefix.empty()) {
+        return true;
+    }
+
+    if (!exec_sql(db_, "BEGIN IMMEDIATE TRANSACTION;", error)) {
+        return false;
+    }
+
+    const std::string source_pattern = source_prefix + "%";
+    const auto execute_delete = [&](const char* sql) -> bool {
+        auto stmt = prepare_statement(db_, sql, error);
+        if (!stmt) {
+            return false;
+        }
+        sqlite3_bind_text(stmt.get(), 1, source_pattern.c_str(), -1, SQLITE_TRANSIENT);
+        return sqlite3_step(stmt.get()) == SQLITE_DONE;
+    };
+
+    bool success =
+        execute_delete(
+            "DELETE FROM taxonomy_embeddings "
+            "WHERE taxonomy_entry_id IN ("
+            "    SELECT id FROM learned_taxonomy_entries "
+            "    WHERE source LIKE ? AND example_count = 0"
+            ");") &&
+        execute_delete(
+            "DELETE FROM learned_category_aliases "
+            "WHERE taxonomy_entry_id IN ("
+            "    SELECT id FROM learned_taxonomy_entries "
+            "    WHERE source LIKE ? AND example_count = 0"
+            ");") &&
+        execute_delete(
+            "DELETE FROM approved_category_examples "
+            "WHERE taxonomy_entry_id IN ("
+            "    SELECT id FROM learned_taxonomy_entries "
+            "    WHERE source LIKE ? AND example_count = 0"
+            ");") &&
+        execute_delete(
+            "DELETE FROM learned_taxonomy_entries "
+            "WHERE source LIKE ? AND example_count = 0;");
+
+    if (success) {
+        success = exec_sql(db_, "COMMIT;", error);
+    } else {
+        std::string rollback_error;
+        exec_sql(db_, "ROLLBACK;", &rollback_error);
+        if (error && error->empty()) {
+            *error = "Failed to delete imported taxonomy candidates.";
+        }
+    }
+
+    return success;
+}
+
 int UserLearningStore::resolve_taxonomy_entry(const std::string& category,
                                               const std::string& subcategory,
                                               const std::string& source,
