@@ -1,5 +1,6 @@
 #include "LlmCatalog.hpp"
 #include "Utils.hpp"
+#include "VisualModelCatalog.hpp"
 
 #include <QObject>
 
@@ -46,6 +47,18 @@ std::optional<std::filesystem::path> path_from_env_var(const std::string& env_va
     return path_from_url(env_value);
 }
 
+std::optional<std::string> string_from_env_var(const std::string& env_var)
+{
+    if (env_var.empty()) {
+        return std::nullopt;
+    }
+    const char* env_value = std::getenv(env_var.c_str());
+    if (!env_value || *env_value == '\0') {
+        return std::nullopt;
+    }
+    return std::string(env_value);
+}
+
 void append_unique_path(std::vector<std::filesystem::path>& paths,
                         const std::optional<std::filesystem::path>& candidate)
 {
@@ -57,6 +70,53 @@ void append_unique_path(std::vector<std::filesystem::path>& paths,
     }
 }
 
+bool urls_reference_same_artifact(std::string_view left, std::string_view right)
+{
+    if (left.empty() || right.empty()) {
+        return false;
+    }
+    if (left == right) {
+        return true;
+    }
+
+    try {
+        return Utils::get_file_name_from_url(std::string(left))
+            == Utils::get_file_name_from_url(std::string(right));
+    } catch (...) {
+        return false;
+    }
+}
+
+void append_shared_visual_model_path(std::vector<std::filesystem::path>& paths, LLMChoice choice)
+{
+    if (choice != LLMChoice::Local_4b_Gemma) {
+        return;
+    }
+
+    const auto local_url = string_from_env_var(default_llm_download_env_var_for_choice(choice));
+    const auto visual_url = string_from_env_var("GEMMA3_4B_MODEL_URL");
+    if (!local_url || !visual_url || !urls_reference_same_artifact(*local_url, *visual_url)) {
+        return;
+    }
+
+    const auto* backend = find_visual_model_descriptor("gemma-3-4b-it");
+    if (!backend) {
+        return;
+    }
+
+    const auto artifact_it = std::find_if(
+        backend->artifacts.begin(),
+        backend->artifacts.end(),
+        [](const VisualModelArtifactDescriptor& artifact) {
+            return artifact.kind == VisualModelArtifactKind::Model;
+        });
+    if (artifact_it == backend->artifacts.end()) {
+        return;
+    }
+
+    append_unique_path(paths, resolve_visual_artifact_path(*backend, *artifact_it, *visual_url));
+}
+
 std::vector<std::filesystem::path> candidate_builtin_llm_paths(LLMChoice choice)
 {
     std::vector<std::filesystem::path> paths;
@@ -64,6 +124,7 @@ std::vector<std::filesystem::path> candidate_builtin_llm_paths(LLMChoice choice)
     if (choice == LLMChoice::Local_3b_legacy) {
         append_unique_path(paths, path_from_url(kLegacyLlama3BQ4Url));
     }
+    append_shared_visual_model_path(paths, choice);
     return paths;
 }
 

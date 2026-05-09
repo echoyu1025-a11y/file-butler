@@ -4,6 +4,7 @@
 #include "Settings.hpp"
 #include "TestHelpers.hpp"
 #include "Utils.hpp"
+#include "VisualModelCatalog.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -84,6 +85,8 @@ TEST_CASE("Built-in Gemma 7B choice persists across Settings load/save") {
 TEST_CASE("Legacy local LLaMa resolves the previous Q4 artifact without marking Gemma 4B ready") {
     TempDir config_dir;
     EnvVarGuard home_guard("HOME", config_dir.path().string());
+    EnvVarGuard appdata_guard("APPDATA", config_dir.path().string());
+    EnvVarGuard localappdata_guard("LOCALAPPDATA", config_dir.path().string());
     EnvVarGuard config_guard("AI_FILE_SORTER_CONFIG_DIR", config_dir.path().string());
 
     const std::filesystem::path legacy_path =
@@ -95,4 +98,32 @@ TEST_CASE("Legacy local LLaMa resolves the previous Q4 artifact without marking 
     CHECK(*resolved_path == legacy_path);
     CHECK(builtin_llm_artifact_available(LLMChoice::Local_3b_legacy));
     CHECK_FALSE(builtin_llm_artifact_available(LLMChoice::Local_4b_Gemma));
+}
+
+TEST_CASE("Built-in Gemma 4B resolves the shared visual-model artifact path") {
+    TempDir config_dir;
+    EnvVarGuard home_guard("HOME", config_dir.path().string());
+    EnvVarGuard appdata_guard("APPDATA", config_dir.path().string());
+    EnvVarGuard localappdata_guard("LOCALAPPDATA", config_dir.path().string());
+    EnvVarGuard config_guard("AI_FILE_SORTER_CONFIG_DIR", config_dir.path().string());
+    EnvVarGuard local_url_guard(
+        "LOCAL_LLM_3B_DOWNLOAD_URL",
+        std::string("https://local.example/models/gemma-3-4b-it-Q4_K_M.gguf"));
+    EnvVarGuard visual_url_guard(
+        "GEMMA3_4B_MODEL_URL",
+        std::string("https://visual.example/downloads/gemma-3-4b-it-Q4_K_M.gguf"));
+
+    const auto* descriptor = find_visual_model_descriptor("gemma-3-4b-it");
+    REQUIRE(descriptor != nullptr);
+    REQUIRE_FALSE(descriptor->artifacts.empty());
+    REQUIRE(descriptor->artifacts.front().kind == VisualModelArtifactKind::Model);
+
+    const auto visual_model_path =
+        visual_artifact_storage_path(*descriptor, descriptor->artifacts.front());
+    write_gguf_file(visual_model_path);
+
+    const auto resolved_path = resolve_downloaded_builtin_llm_path(LLMChoice::Local_4b_Gemma);
+    REQUIRE(resolved_path.has_value());
+    CHECK(*resolved_path == visual_model_path);
+    CHECK(builtin_llm_artifact_available(LLMChoice::Local_4b_Gemma));
 }
