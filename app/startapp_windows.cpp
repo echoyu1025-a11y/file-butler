@@ -93,8 +93,20 @@ void addDllDirectoryChecked(const QString& directory)
     }
 }
 
+std::filesystem::path windows_executable_path(const QString& exeDir);
+
 QStringList candidateGgmlDirectories(const QString& exeDir, const QString& variant)
 {
+    if (variant == QStringLiteral("wocuda")) {
+        QStringList candidates;
+        const auto cpuCandidates = GgmlRuntimePaths::windows_cpu_runtime_candidate_dirs(
+            windows_executable_path(exeDir));
+        for (const auto& candidate : cpuCandidates) {
+            candidates << QString::fromStdWString(candidate.wstring());
+        }
+        return candidates;
+    }
+
     QStringList candidates;
     candidates << QDir(exeDir).filePath(QStringLiteral("lib/ggml/%1").arg(variant));
     candidates << QDir(exeDir).filePath(QStringLiteral("ggml/%1").arg(variant));
@@ -115,6 +127,8 @@ QStringList requiredGgmlPayloadFiles(BackendSelection selection)
             required << QStringLiteral("ggml-vulkan.dll");
             break;
         case BackendSelection::Cpu:
+            required << QStringLiteral("ggml-cpu.dll");
+            break;
         default:
             break;
     }

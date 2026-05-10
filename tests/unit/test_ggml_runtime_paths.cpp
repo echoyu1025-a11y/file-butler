@@ -42,6 +42,41 @@ TEST_CASE("Windows Vulkan payload candidates prefer the BLAS runtime layout") {
             std::filesystem::path(R"(C:\AIFileSorter\lib\precompiled\vulkan\bin)"));
 }
 
+TEST_CASE("Windows CPU runtime candidates fall back to the Vulkan runtime layout") {
+    const std::filesystem::path exe = R"(C:\AIFileSorter\aifilesorter.exe)";
+
+    const auto candidates = GgmlRuntimePaths::windows_cpu_runtime_candidate_dirs(exe);
+
+    REQUIRE(candidates.size() == 4);
+    REQUIRE(candidates[0] ==
+            std::filesystem::path(R"(C:\AIFileSorter\lib\ggml\wocuda)"));
+    REQUIRE(candidates[1] ==
+            std::filesystem::path(R"(C:\AIFileSorter\ggml\wocuda)"));
+    REQUIRE(candidates[2] ==
+            std::filesystem::path(R"(C:\AIFileSorter\lib\ggml\wvulkan)"));
+    REQUIRE(candidates[3] ==
+            std::filesystem::path(R"(C:\AIFileSorter\ggml\wvulkan)"));
+}
+
+TEST_CASE("Windows CPU runtime resolution falls back to the Vulkan runtime layout") {
+    TempDir temp_dir;
+    const auto root = temp_dir.path();
+    const auto exe = root / "aifilesorter.exe";
+    const auto fallback = root / "lib" / "ggml" / "wvulkan";
+
+    std::ofstream(exe).put('x');
+
+    std::filesystem::create_directories(fallback);
+    std::ofstream(fallback / "llama.dll").put('x');
+    std::ofstream(fallback / "ggml.dll").put('x');
+    std::ofstream(fallback / "ggml-cpu.dll").put('x');
+
+    const auto resolved = GgmlRuntimePaths::resolve_windows_cpu_runtime_dir(exe);
+
+    REQUIRE(resolved.has_value());
+    REQUIRE(*resolved == fallback);
+}
+
 TEST_CASE("Windows Vulkan payload resolution prefers the BLAS runtime layout") {
     TempDir temp_dir;
     const auto root = temp_dir.path();

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <span>
 
 namespace GgmlRuntimePaths {
 
@@ -14,19 +15,13 @@ bool ends_with(const std::string& value, const std::string& suffix) {
     return std::equal(suffix.rbegin(), suffix.rend(), value.rbegin());
 }
 
-bool has_windows_runtime_payload(const std::filesystem::path& dir)
+bool has_windows_runtime_payload(const std::filesystem::path& dir,
+                                 std::span<const char* const> required_files)
 {
     std::error_code ec;
     if (!std::filesystem::exists(dir, ec) || !std::filesystem::is_directory(dir, ec)) {
         return false;
     }
-
-    constexpr std::array required_files = {
-        "llama.dll",
-        "ggml.dll",
-        "ggml-vulkan.dll",
-        "vulkan-1.dll",
-    };
 
     for (const char* filename : required_files) {
         if (!std::filesystem::exists(dir / filename, ec)) {
@@ -64,6 +59,40 @@ bool has_payload(const std::filesystem::path& dir) {
     return false;
 }
 
+std::vector<std::filesystem::path> windows_cpu_runtime_candidate_dirs(
+    const std::filesystem::path& exe_path)
+{
+    if (exe_path.empty()) {
+        return {};
+    }
+
+    const std::filesystem::path exe_dir = exe_path.parent_path();
+    return {
+        exe_dir / "lib" / "ggml" / "wocuda",
+        exe_dir / "ggml" / "wocuda",
+        exe_dir / "lib" / "ggml" / "wvulkan",
+        exe_dir / "ggml" / "wvulkan",
+    };
+}
+
+std::optional<std::filesystem::path> resolve_windows_cpu_runtime_dir(
+    const std::filesystem::path& exe_path)
+{
+    constexpr std::array required_files = {
+        "llama.dll",
+        "ggml.dll",
+        "ggml-cpu.dll",
+    };
+
+    for (const auto& candidate : windows_cpu_runtime_candidate_dirs(exe_path)) {
+        if (has_windows_runtime_payload(candidate, required_files)) {
+            return candidate.lexically_normal();
+        }
+    }
+
+    return std::nullopt;
+}
+
 std::vector<std::filesystem::path> windows_vulkan_payload_candidate_dirs(
     const std::filesystem::path& exe_path)
 {
@@ -81,8 +110,15 @@ std::vector<std::filesystem::path> windows_vulkan_payload_candidate_dirs(
 std::optional<std::filesystem::path> resolve_windows_vulkan_payload_dir(
     const std::filesystem::path& exe_path)
 {
+    constexpr std::array required_files = {
+        "llama.dll",
+        "ggml.dll",
+        "ggml-vulkan.dll",
+        "vulkan-1.dll",
+    };
+
     for (const auto& candidate : windows_vulkan_payload_candidate_dirs(exe_path)) {
-        if (has_windows_runtime_payload(candidate)) {
+        if (has_windows_runtime_payload(candidate, required_files)) {
             return candidate.lexically_normal();
         }
     }

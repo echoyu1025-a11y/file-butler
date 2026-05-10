@@ -556,6 +556,20 @@ Procedure: Call `GgmlRuntimePaths::windows_vulkan_payload_candidate_dirs()`.
 Expected outcome: The first candidate is `lib/precompiled/vulkan-blas/bin` and the second is `lib/precompiled/vulkan/bin`.
 Run: `./build-tests/ai_file_sorter_tests "Windows Vulkan payload candidates prefer the BLAS runtime layout"`
 
+#### Test case: Windows CPU runtime candidates fall back to the Vulkan runtime layout
+Purpose: Ensure launcher-based Windows builds can reuse `wvulkan` when the dedicated CPU runtime directory is absent.
+Setup: Construct a Windows executable path under a representative install root.
+Procedure: Call `GgmlRuntimePaths::windows_cpu_runtime_candidate_dirs()`.
+Expected outcome: The candidate order starts with `wocuda` and then falls back to `wvulkan`.
+Run: `./build-tests/ai_file_sorter_tests "Windows CPU runtime candidates fall back to the Vulkan runtime layout"`
+
+#### Test case: Windows CPU runtime resolution falls back to the Vulkan runtime layout
+Purpose: Ensure CPU launcher startup can reuse the Vulkan runtime directory when it already contains `ggml-cpu.dll`.
+Setup: Create a temporary `lib/ggml/wvulkan` directory containing the required CPU runtime DLL names, without creating `wocuda`.
+Procedure: Call `GgmlRuntimePaths::resolve_windows_cpu_runtime_dir()`.
+Expected outcome: The resolved path points to `lib/ggml/wvulkan`.
+Run: `./build-tests/ai_file_sorter_tests "Windows CPU runtime resolution falls back to the Vulkan runtime layout"`
+
 #### Test case: Windows Vulkan payload resolution prefers the BLAS runtime layout
 Purpose: Ensure Windows runtime lookup resolves the BLAS-enabled Vulkan payload when both layouts exist.
 Setup: Create temporary `vulkan-blas/bin` and `vulkan/bin` directories containing the required runtime DLL names.
