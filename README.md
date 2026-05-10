@@ -553,9 +553,9 @@ Option A - CMake + vcpkg (recommended)
    app\scripts\build_llama_windows.ps1 cuda=off vulkan=on
    ```
   
-  Each run emits the appropriate `llama.dll` / `ggml*.dll` pair under `app\lib\precompiled\<cpu|cuda|vulkan|vulkan-blas>` and copies the runtime DLLs into the Windows runtime directories used by the app (`app\lib\ggml\wocuda`, `app\lib\ggml\wcuda`, or `app\lib\ggml\wvulkan`). For Vulkan builds, install the latest LunarG Vulkan SDK (or the vendor's runtime), ensure `vulkaninfo` succeeds in the same shell, and then run the script. The final Windows build prefers the `vulkan-blas` payload when it is available, while the non-MSIX launcher `aifilesorter.exe` still auto-selects the best backend at launch: CUDA is preferred, Vulkan is used when CUDA is unavailable, and CPU remains the fallback.
+  Each run emits the appropriate `llama.dll` / `ggml*.dll` pair under `app\lib\precompiled\<cpu|cuda|vulkan|vulkan-blas>` and copies the runtime DLLs into the Windows runtime directories used by the app (`app\lib\ggml\wocuda`, `app\lib\ggml\wcuda`, or `app\lib\ggml\wvulkan`). For Vulkan builds, install the latest LunarG Vulkan SDK (or the vendor's runtime), ensure `vulkaninfo` succeeds in the same shell, and then run the script. The Windows launcher `aifilesorter.exe` auto-selects the best backend at launch: CUDA is preferred, Vulkan is used when CUDA is unavailable, and CPU remains the fallback.
 
-6. Build the Qt6 application using the helper script (still in the VS shell). The helper stages runtime DLLs via `windeployqt`, shares one dependency install tree across variants, and by default produces three Windows builds in one run:
+6. Build the Qt6 application using the helper script (still in the VS shell). The helper stages runtime DLLs via `windeployqt` and shares one dependency install tree across builds:
 
    ```powershell
    # One-time per shell if script execution is blocked:
@@ -565,14 +565,10 @@ Option A - CMake + vcpkg (recommended)
    ```
 
    - Pass `-VcpkgRoot <path>` only if auto-discovery misses your vcpkg install. The path must contain `scripts\buildsystems\vcpkg.cmake`.
-   - The helper produces these output directories by default:
-     - Standard installer build with Windows auto-update enabled: `app\build-windows\Release`
-     - Microsoft Store build with update checks disabled: `app\build-windows-store\Release`
-     - Standalone Windows build with notification-only/manual updates: `app\build-windows-standalone\Release`
-   - Use `-Variants Standard`, `-Variants MsStore`, or `-Variants Standalone` to build only a subset.
-   - `aifilesorter.exe` is the Windows entry point in every variant. In `Standard` and `Standalone`, it is the bootstrapper and launches `aifilesorter-bin.exe`; in `MsStore`, it remains the main application executable directly, so the staged ggml/backend DLLs live beside it in the packaged app directory rather than under a launcher-managed runtime subtree.
+   - The main bundled output is staged under `app\build-windows\Release`.
+   - `aifilesorter.exe` is the Windows entry point for the bundled build and launches `aifilesorter-bin.exe`.
    - `-VcpkgRoot` is optional if `VCPKG_ROOT`/`VPKG_ROOT` is set or `vcpkg`/`vpkg` is on `PATH`.
-   - Each variant directory receives its own executable and staged Qt/third-party DLLs. Pass `-SkipDeploy` if you only want the binaries without bundling runtime DLLs.
+   - Pass `-SkipDeploy` if you only want the binaries without bundling runtime DLLs.
    - Pass `-Parallel <N>` to override the default “all cores” parallel build behaviour (for example, `-Parallel 8`). By default the script invokes `cmake --build ... --parallel <core-count>` and `ctest -j <core-count>` to keep both MSBuild and Ninja fully utilized.
 
 Option B - CMake + Qt online installer
@@ -626,11 +622,11 @@ Option B - CMake + Qt online installer
 
 Notes
 
-- To rebuild from scratch, run `.\app\build_windows.ps1 -Clean`. The script removes the selected variant build directories and the shared `app\build-windows-vcpkg_installed` dependency tree before configuring.
+- To rebuild from scratch, run `.\app\build_windows.ps1 -Clean`. The script removes the Windows build directories used by the helper and the shared `app\build-windows-vcpkg_installed` dependency tree before configuring.
 - Runtime DLLs are copied automatically via `windeployqt` after each successful build; skip this step with `-SkipDeploy` if you manage deployment yourself.
 - If Visual Studio sets `VCPKG_ROOT` to its bundled copy under `Program Files`, point `VCPKG_ROOT` to a writable clone or pass `vcpkgroot=<path>` when running `build_llama_windows.ps1`. The script skips the bundled Visual Studio copy during auto-discovery because it is usually read-only.
 - If you plan to ship CUDA or Vulkan acceleration, run the `build_llama_*` helper for each backend you intend to include before configuring CMake so the libraries exist. The runtime can carry both and auto-select at launch, so CUDA remains optional.
-- `-BuildTests` and `-RunTests` currently build and execute tests only in the `Standard` variant, which is the primary Windows development/CI configuration.
+- `-BuildTests` and `-RunTests` are intended for the primary bundled Windows build configuration.
 
 ### Running tests
 
@@ -660,14 +656,14 @@ Notes
 On Windows you can pass `-BuildTests` (and `-RunTests` to execute `ctest`) to `app\build_windows.ps1`:
 
 ```powershell
-app\build_windows.ps1 -Configuration Release -Variants Standard -BuildTests -RunTests
+app\build_windows.ps1 -Configuration Release -BuildTests -RunTests
 ```
 
 The current suite (under `tests/unit`) focuses on core utilities; expand it as new functionality gains coverage.
 
 ### Selecting a backend at runtime
 
-Both the Linux launcher (`app/bin/run_aifilesorter.sh` / `aifilesorter-bin`) and the Windows launcher (`aifilesorter.exe` on `Standard` / `Standalone`) accept the following optional flags:
+Both the Linux launcher (`app/bin/run_aifilesorter.sh` / `aifilesorter-bin`) and the Windows launcher (`aifilesorter.exe` in bundled Windows builds) accept the following optional flags:
 
 - `--cuda={on|off}` – force-enable or disable the CUDA backend.
 - `--vulkan={on|off}` – force-enable or disable the Vulkan backend.
