@@ -1872,6 +1872,33 @@ enum class PreferredBackend {
 }
 
 #ifdef GGML_USE_METAL
+std::vector<int> build_metal_model_load_retry_candidates(int optimistic_layers)
+{
+    std::vector<int> candidates;
+    if (optimistic_layers <= 0) {
+        return candidates;
+    }
+
+    candidates.push_back(optimistic_layers);
+    int current_layers = optimistic_layers;
+    while (current_layers > kMinimumGpuLayerRetryCount) {
+        int reduced =
+            (current_layers * kGpuLayerRetryScaleNumerator) / kGpuLayerRetryScaleDenominator;
+        if (reduced >= current_layers) {
+            reduced = current_layers - 1;
+        }
+        current_layers = std::max(reduced, kMinimumGpuLayerRetryCount);
+        if (current_layers > 0 &&
+            std::find(candidates.begin(), candidates.end(), current_layers) == candidates.end()) {
+            candidates.push_back(current_layers);
+        }
+    }
+
+    return candidates;
+}
+#endif
+
+#ifdef GGML_USE_METAL
 int determine_metal_layers(const std::string& model_path,
                            const std::shared_ptr<spdlog::logger>& logger) {
     int gpu_layers = resolve_gpu_layer_override();
@@ -2657,8 +2684,13 @@ llama_model_params LocalLLMClient::load_model_or_throw(llama_model_params model_
 
     const bool has_explicit_gpu_layer_override = resolve_gpu_layer_override() != INT_MIN;
     if (model_params.n_gpu_layers > 0 && !has_explicit_gpu_layer_override) {
+#ifdef GGML_USE_METAL
+        const std::vector<int> retry_layers =
+            build_metal_model_load_retry_candidates(model_params.n_gpu_layers);
+#else
         const std::vector<int> retry_layers =
             build_model_load_retry_candidates(model_path, model_params.n_gpu_layers);
+#endif
         for (std::size_t i = 1; i < retry_layers.size(); ++i) {
             const int previous_layers = retry_layers[i - 1];
             const int retry_layers_count = retry_layers[i];
