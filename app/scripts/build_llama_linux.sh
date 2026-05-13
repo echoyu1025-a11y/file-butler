@@ -59,12 +59,31 @@ resolve_blas_setting() {
     echo "OFF"
 }
 
+resolve_cuda_host_compiler() {
+    local candidate=""
+    local version=""
+    local major=""
+
+    for candidate in /usr/bin/g++-13 /usr/bin/g++-12 /usr/bin/g++-11 /usr/bin/g++-10 /usr/bin/g++; do
+        [ -x "$candidate" ] || continue
+        version="$("$candidate" -dumpfullversion -dumpversion 2>/dev/null || true)"
+        major="${version%%.*}"
+        if [[ "$major" =~ ^[0-9]+$ ]] && (( major >= 6 && major <= 13 )); then
+            echo "$candidate"
+            return 0
+        fi
+    done
+
+    echo ""
+}
+
 build_variant() {
     local variant="$1"
     local cuda_flag="$2"
     local vulkan_flag="$3"
     local blas_flag="$4"
     local runtime_subdir="$5"
+    local cuda_host_compiler="$6"
 
     local build_dir="$LLAMA_DIR/build-$variant"
     rm -rf "$build_dir"
@@ -91,7 +110,7 @@ build_variant() {
         cmake_args+=( -DGGML_BLAS_VENDOR=OpenBLAS )
     fi
     if [[ "$cuda_flag" == "ON" ]]; then
-        cmake_args+=( -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++-10 )
+        cmake_args+=( -DCMAKE_CUDA_HOST_COMPILER="$cuda_host_compiler" )
     fi
 
     cmake "${cmake_args[@]}"
@@ -144,7 +163,18 @@ if [[ "$RESOLVED_BLAS" == "OFF" && "$BLASSWITCH" == "AUTO" ]]; then
 fi
 
 # Always build a CPU baseline (OpenBLAS when available)
-build_variant "cpu" "OFF" "OFF" "$RESOLVED_BLAS" "wocuda"
+CUDA_HOST_COMPILER=""
+if [[ "$CUDASWITCH" == "ON" ]]; then
+    CUDA_HOST_COMPILER="$(resolve_cuda_host_compiler)"
+    if [[ -z "$CUDA_HOST_COMPILER" ]]; then
+        echo "CUDA requested but no supported g++ host compiler was found." >&2
+        echo "Install g++-13 (recommended for CUDA 12.4) or another CUDA-supported g++ version and retry." >&2
+        exit 1
+    fi
+    echo "CUDA host compiler: $CUDA_HOST_COMPILER"
+fi
+
+build_variant "cpu" "OFF" "OFF" "$RESOLVED_BLAS" "wocuda" "$CUDA_HOST_COMPILER"
 
 # Build requested accelerator variant if applicable
 REQUESTED_VARIANT="cpu"
@@ -158,7 +188,7 @@ elif [[ "$VULKANSWITCH" == "ON" ]]; then
 fi
 
 if [[ "$REQUESTED_VARIANT" != "cpu" ]]; then
-    build_variant "$REQUESTED_VARIANT" "$CUDASWITCH" "$VULKANSWITCH" "$RESOLVED_BLAS" "$REQUESTED_RUNTIME"
+    build_variant "$REQUESTED_VARIANT" "$CUDASWITCH" "$VULKANSWITCH" "$RESOLVED_BLAS" "$REQUESTED_RUNTIME" "$CUDA_HOST_COMPILER"
 fi
 
 # Copy headers once (from the source tree)
