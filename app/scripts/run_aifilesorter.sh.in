@@ -6,6 +6,39 @@ VULKAN_LIB_DIR="$APP_DIR/lib/precompiled/vulkan/bin"
 PRECOMPILED_ROOT_DIR="$APP_DIR/lib/precompiled"
 PLATFORM_CANDIDATES="/usr/lib/x86_64-linux-gnu/qt6/plugins /usr/lib/qt6/plugins /lib/x86_64-linux-gnu/qt6/plugins"
 
+dir_has_match() {
+    dir="$1"
+    pattern="$2"
+    for candidate in "$dir"/$pattern; do
+        if [ -e "$candidate" ] && [ "$candidate" != "$dir/$pattern" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+has_cpu_payload() {
+    dir="$1"
+    [ -d "$dir" ] || return 1
+    dir_has_match "$dir" "libllama.so*" &&
+    dir_has_match "$dir" "libggml.so*" &&
+    dir_has_match "$dir" "libggml-base.so*" &&
+    dir_has_match "$dir" "libggml-cpu.so*" &&
+    dir_has_match "$dir" "libmtmd.so*"
+}
+
+resolve_cpu_lib_dir() {
+    if has_cpu_payload "$CPU_LIB_DIR"; then
+        echo "$CPU_LIB_DIR"
+        return
+    fi
+    if has_cpu_payload "$VULKAN_LIB_DIR"; then
+        echo "$VULKAN_LIB_DIR"
+        return
+    fi
+    echo "$CPU_LIB_DIR"
+}
+
 select_cuda_dir() {
     if [ -d "$CUDA_LIB_DIR" ]; then
         if command -v ldconfig >/dev/null 2>&1 && ldconfig -p 2>/dev/null | grep -q libcudart; then
@@ -56,13 +89,14 @@ if [ "$CUDA_OVERRIDE" = "on" ] && [ "$VULKAN_OVERRIDE" = "on" ]; then
     exit 1
 fi
 
+SELECTED_CPU_LIB_DIR="$(resolve_cpu_lib_dir)"
 SELECTED_CUDA_DIR="$(select_cuda_dir)"
 SELECTED_VK_DIR="$(select_vulkan_dir)"
 
 USE_CUDA=0
 USE_VULKAN=0
 GPU_BACKEND="cpu"
-GGML_VARIANT="wocuda"
+GGML_DIR="$SELECTED_CPU_LIB_DIR"
 LLAMA_DEVICE=""
 if [ -n "$SELECTED_CUDA_DIR" ]; then
     USE_CUDA=1
@@ -108,34 +142,45 @@ if [ $USE_CUDA -eq 1 ]; then
     echo "Using CUDA backend." >&2
     unset GGML_DISABLE_CUDA
     GPU_BACKEND="cuda"
-    GGML_VARIANT="wcuda"
+    GGML_DIR="$CUDA_LIB_DIR"
     LLAMA_DEVICE="cuda"
 elif [ $USE_VULKAN -eq 1 ]; then
     echo "Using Vulkan backend." >&2
     export GGML_DISABLE_CUDA=1
     GPU_BACKEND="vulkan"
-    GGML_VARIANT="wvulkan"
+    GGML_DIR="$VULKAN_LIB_DIR"
     LLAMA_DEVICE="vulkan"
 else
-    echo "Using CPU backend." >&2
+    if [ "$SELECTED_CPU_LIB_DIR" = "$VULKAN_LIB_DIR" ]; then
+        echo "Using CPU backend via Vulkan runtime payload fallback." >&2
+    else
+        echo "Using CPU backend." >&2
+    fi
     export GGML_DISABLE_CUDA=1
     GPU_BACKEND="cpu"
-    GGML_VARIANT="wocuda"
+    GGML_DIR="$SELECTED_CPU_LIB_DIR"
     LLAMA_DEVICE=""
 fi
 
 export AI_FILE_SORTER_GPU_BACKEND="$GPU_BACKEND"
-export AI_FILE_SORTER_GGML_DIR="$APP_DIR/lib/ggml/$GGML_VARIANT"
+if [ -n "$GGML_DIR" ] && [ -d "$GGML_DIR" ]; then
+    export AI_FILE_SORTER_GGML_DIR="$GGML_DIR"
+else
+    unset AI_FILE_SORTER_GGML_DIR
+fi
 if [ -n "$LLAMA_DEVICE" ]; then
     export LLAMA_ARG_DEVICE="$LLAMA_DEVICE"
 else
     unset LLAMA_ARG_DEVICE
 fi
 
-LIB_PATH="$CPU_LIB_DIR:$PRECOMPILED_ROOT_DIR"
-if [ $USE_CUDA -eq 1 ] && [ -n "$SELECTED_CUDA_DIR" ]; then
+LIB_PATH="$PRECOMPILED_ROOT_DIR"
+if [ -d "$SELECTED_CPU_LIB_DIR" ]; then
+    LIB_PATH="$SELECTED_CPU_LIB_DIR:$LIB_PATH"
+fi
+if [ $USE_CUDA -eq 1 ] && [ -n "$SELECTED_CUDA_DIR" ] && [ "$SELECTED_CUDA_DIR" != "$SELECTED_CPU_LIB_DIR" ]; then
     LIB_PATH="$SELECTED_CUDA_DIR:$LIB_PATH"
-elif [ $USE_VULKAN -eq 1 ] && [ -n "$SELECTED_VK_DIR" ]; then
+elif [ $USE_VULKAN -eq 1 ] && [ -n "$SELECTED_VK_DIR" ] && [ "$SELECTED_VK_DIR" != "$SELECTED_CPU_LIB_DIR" ]; then
     LIB_PATH="$SELECTED_VK_DIR:$LIB_PATH"
 fi
 if [ -n "$LD_LIBRARY_PATH" ]; then

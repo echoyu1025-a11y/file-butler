@@ -267,7 +267,7 @@ Tip: quit CPU/GPU‑intensive apps before running the check for more accurate re
 - **Libraries**: `curl`, `sqlite3`, `fmt`, `spdlog`, `libmediainfo` (required for full source builds), and the prebuilt `llama` libraries shipped under `app/lib/precompiled` on Linux/Windows or `app/lib/precompiled-*` for macOS variant builds. On Windows, these non-Qt libraries are supplied through the `app/vcpkg.json` manifest.
 - **MediaInfo policy**: MediaInfo must be installed through a package manager (`apt`/`dnf`/`pacman`/`brew`/`vcpkg`). The build rejects vendored MediaInfo submodules and checked-in binaries.
 - **Document analysis libraries** (vendored): PDFium, libzip, and pugixml. PDFium is required by default so packaged/source builds keep PDF extraction embedded on Windows, macOS, and Linux; set `-DAI_FILE_SORTER_REQUIRE_EMBEDDED_PDF_BACKEND=OFF` only if you intentionally want the `pdftotext` fallback.
-- **Optional GPU backends**: CUDA 12.x for NVIDIA cards or a Vulkan 1.2+ runtime. On Windows installer/standalone builds, `aifilesorter.exe` auto-detects the best available backend and now prefers CUDA over Vulkan when both are available, falling back to CPU/OpenBLAS automatically. On Linux, the same applies through `run_aifilesorter.sh`, so CUDA is never required to run the app.
+- **Optional GPU backends**: CUDA 12.x for NVIDIA cards or a Vulkan 1.2+ runtime. On Windows installer/standalone builds, `aifilesorter.exe` auto-detects the best available backend and now prefers CUDA over Vulkan when both are available, falling back to CPU/OpenBLAS automatically. On Linux, the same applies through `run_aifilesorter.sh`; when a dedicated CPU runtime bundle is absent, the launcher can also reuse the staged Vulkan payload for CPU/OpenBLAS fallback, so CUDA is never required to run the app.
 - **Git** (optional): For cloning this repository. Archives can also be downloaded.
 - **Remote model credentials** (optional): Required only when using ChatGPT, Gemini, or a custom OpenAI-compatible API endpoint.
 
@@ -375,7 +375,7 @@ File categorization with local LLMs is completely free of charge. If you prefer 
    ./app/scripts/build_llama_linux.sh cuda=off vulkan=on
    ```
 
-   Each invocation stages the corresponding `llama`/`ggml` libraries under `app/lib/precompiled/<variant>` and the runtime DLL/SO copies under `app/lib/ggml/w<variant>`. The script refuses to enable CUDA and Vulkan simultaneously, so run it separately for each backend. Shipping both directories lets the launcher pick CUDA when available, then Vulkan, and otherwise stay on CPU—no CUDA-only dependency remains.
+   Each invocation stages the corresponding `llama`/`ggml` libraries under `app/lib/precompiled/<variant>` and the runtime DLL/SO copies under `app/lib/ggml/w<variant>`. The script refuses to enable CUDA and Vulkan simultaneously, so run it separately for each backend. Shipping both directories lets the launcher pick CUDA when available, then Vulkan, and otherwise stay on CPU. If you only ship the Vulkan payload, the Linux launcher can reuse its bundled CPU/OpenBLAS libraries as the CPU fallback, matching the Windows launcher behavior.
 
 5. **Compile the application**
 
@@ -668,7 +668,7 @@ Both the Linux launcher (`app/bin/run_aifilesorter.sh` / `aifilesorter-bin`) and
 - `--cuda={on|off}` – force-enable or disable the CUDA backend.
 - `--vulkan={on|off}` – force-enable or disable the Vulkan backend.
 
-When no flags are provided the app auto-detects available runtimes in priority order (CUDA → Vulkan → CPU). Use the flags to skip a backend (`--cuda=off` forces Vulkan/CPU even if CUDA is installed, `--vulkan=off` tests CUDA explicitly) or to validate a newly installed stack (`--vulkan=on`). Passing `on` to both flags is rejected, and if neither GPU backend is detected the app automatically stays on CPU.
+When no flags are provided the app auto-detects available runtimes in priority order (CUDA → Vulkan → CPU). Use the flags to skip a backend (`--cuda=off` forces Vulkan/CPU even if CUDA is installed, `--vulkan=off` tests CUDA explicitly) or to validate a newly installed stack (`--vulkan=on`). Passing `on` to both flags is rejected, and if neither GPU backend is detected the app automatically stays on CPU. On Linux, CPU mode can reuse the staged Vulkan runtime payload when the dedicated CPU payload is not present.
 
 #### Vulkan and VRAM notes
 

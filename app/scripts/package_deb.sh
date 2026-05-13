@@ -261,88 +261,12 @@ if [[ -f "$REPO_ROOT/LICENSE" ]]; then
     install -m 0644 "$REPO_ROOT/LICENSE" "$PKG_ROOT/opt/aifilesorter/LICENSE"
 fi
 
-cat > "$PKG_ROOT/usr/bin/run_aifilesorter.sh" <<'EOF'
-#!/bin/sh
-APP_DIR="/opt/aifilesorter"
-CPU_LIB_DIR="$APP_DIR/lib/precompiled/cpu/bin"
-CUDA_LIB_DIR="$APP_DIR/lib/precompiled/cuda/bin"
-VULKAN_LIB_DIR="$APP_DIR/lib/precompiled/vulkan/bin"
-PRECOMPILED_ROOT_DIR="$APP_DIR/lib/precompiled"
-PLATFORM_CANDIDATES="/usr/lib/x86_64-linux-gnu/qt6/plugins /usr/lib/qt6/plugins /lib/x86_64-linux-gnu/qt6/plugins"
-
-choose_vulkan_path() {
-    if [ -d "$VULKAN_LIB_DIR" ]; then
-        if command -v ldconfig >/dev/null 2>&1 && ldconfig -p 2>/dev/null | grep -q libvulkan; then
-            echo "$VULKAN_LIB_DIR"
-            return
-        fi
-        for candidate in /usr/lib/x86_64-linux-gnu/libvulkan.so* /usr/lib/libvulkan.so* /lib/x86_64-linux-gnu/libvulkan.so*; do
-            if [ "$candidate" = "/usr/lib/x86_64-linux-gnu/libvulkan.so*" ]; then
-                break
-            fi
-            if [ -e "$candidate" ]; then
-                echo "$VULKAN_LIB_DIR"
-                return
-            fi
-        done
-    fi
-    echo ""
-}
-
-choose_cuda_path() {
-    if [ -d "$CUDA_LIB_DIR" ]; then
-        if command -v ldconfig >/dev/null 2>&1 && ldconfig -p 2>/dev/null | grep -q libcudart; then
-            echo "$CUDA_LIB_DIR"
-            return
-        fi
-        for candidate in /usr/local/cuda*/targets/x86_64-linux/lib/libcudart.so*; do
-            if [ "$candidate" = "/usr/local/cuda*/targets/x86_64-linux/lib/libcudart.so*" ]; then
-                break
-            fi
-            if [ -e "$candidate" ]; then
-                echo "$CUDA_LIB_DIR"
-                return
-            fi
-        done
-    fi
-    echo ""
-}
-
-SELECTED_VULKAN_DIR="$(choose_vulkan_path)"
-SELECTED_CUDA_DIR="$(choose_cuda_path)"
-PATH_COMPONENTS="$CPU_LIB_DIR:$PRECOMPILED_ROOT_DIR"
-if [ -n "$SELECTED_CUDA_DIR" ] && [ -d "$SELECTED_CUDA_DIR" ] && [ "$SELECTED_CUDA_DIR" != "$CPU_LIB_DIR" ]; then
-    PATH_COMPONENTS="$SELECTED_CUDA_DIR:$PATH_COMPONENTS"
-elif [ -n "$SELECTED_VULKAN_DIR" ] && [ -d "$SELECTED_VULKAN_DIR" ] && [ "$SELECTED_VULKAN_DIR" != "$CPU_LIB_DIR" ]; then
-    PATH_COMPONENTS="$SELECTED_VULKAN_DIR:$PATH_COMPONENTS"
-fi
-if [ -n "$LD_LIBRARY_PATH" ]; then
-    export LD_LIBRARY_PATH="$PATH_COMPONENTS:$LD_LIBRARY_PATH"
-else
-    export LD_LIBRARY_PATH="$PATH_COMPONENTS"
-fi
-
-if [ -z "$QT_QPA_PLATFORM_PLUGIN_PATH" ]; then
-    for candidate in $PLATFORM_CANDIDATES; do
-        if [ -d "$candidate/platforms" ]; then
-            export QT_QPA_PLATFORM_PLUGIN_PATH="$candidate/platforms"
-            break
-        fi
-    done
-fi
-
-if [ -n "$QT_QPA_PLATFORM_PLUGIN_PATH" ] && [ ! -f "$QT_QPA_PLATFORM_PLUGIN_PATH/libqxcb.so" ]; then
-    if [ -n "$WAYLAND_DISPLAY" ] || [ "$XDG_SESSION_TYPE" = "wayland" ]; then
-        export QT_QPA_PLATFORM="wayland"
-    else
-        echo "Qt xcb platform plugin (libqxcb.so) not found in \$QT_QPA_PLATFORM_PLUGIN_PATH ($QT_QPA_PLATFORM_PLUGIN_PATH)." >&2
-        echo "Install a Qt 6 XCB platform plugin (e.g. from qt.io archives) or run under a Wayland session." >&2
-        exit 1
-    fi
-fi
-
-exec "$APP_DIR/bin/aifilesorter-bin" "$@"
-EOF
+python3 "$SCRIPT_DIR/gen_run_wrapper.py" \
+    --mode install \
+    --install-app-dir "/opt/aifilesorter" \
+    --binary "aifilesorter-bin" \
+    --template "$SCRIPT_DIR/run_aifilesorter.sh.in" \
+    --output "$PKG_ROOT/usr/bin/run_aifilesorter.sh"
 chmod 0755 "$PKG_ROOT/usr/bin/run_aifilesorter.sh"
 ln -sf run_aifilesorter.sh "$PKG_ROOT/usr/bin/aifilesorter"
 
