@@ -7,6 +7,12 @@ Let AI organize your messy folders and find files worth cleaning up. Supports **
 
 ---
 
+## 📸 Screenshots
+
+| Organize | Clean up |
+| --- | --- |
+| ![Organize](../screenshots/organize.png) | ![Clean up](../screenshots/cleanup.png) |
+
 ## ✨ Two Core Features
 
 ### 🗂️ File Organizing

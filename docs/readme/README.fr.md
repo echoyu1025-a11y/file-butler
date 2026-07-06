@@ -7,6 +7,12 @@ Laissez l'IA organiser vos dossiers en désordre et repérer les fichiers qui m�
 
 ---
 
+## 📸 Screenshots
+
+| Organize | Clean up |
+| --- | --- |
+| ![Organize](../screenshots/organize.png) | ![Clean up](../screenshots/cleanup.png) |
+
 ## ✨ Deux fonctions principales
 
 ### 🗂️ Organisation de fichiers

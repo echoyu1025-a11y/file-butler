@@ -29,6 +29,10 @@
 #include <QSize>
 #include <QElapsedTimer>
 #include <QTimer>
+#include <QDir>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QStackedWidget>
 #include <QWidget>
 
 #include <functional>
@@ -708,6 +712,34 @@ int run_application(const ParsedArguments& parsed_args)
                      parsed_args.test_mode,
                      app_data_dir);
     main_app.run();
+
+    // 开发者截图模式：设置 AIFS_SCREENSHOT_DIR=<目录> 启动时，自动截「文件整理」页与
+    // 「文件清理」页（对 AIFS_SCREENSHOT_SCAN_DIR 跑一次真实扫描后截）并退出。
+    // 用 QWidget::grab() 自绘渲染，无需系统屏幕录制权限。仅用于生成文档截图。
+    if (const QByteArray shot_dir_raw = qgetenv("AIFS_SCREENSHOT_DIR"); !shot_dir_raw.isEmpty()) {
+        const QString shot_dir = QString::fromUtf8(shot_dir_raw);
+        main_app.resize(1280, 860);
+        QTimer::singleShot(1500, &main_app, [&main_app, shot_dir]() {
+            main_app.grab().save(shot_dir + QStringLiteral("/organize.png"));
+            auto* stack = main_app.findChild<QStackedWidget*>(QStringLiteral("mainStack"));
+            auto* page = main_app.findChild<QWidget*>(QStringLiteral("cleanupPage"));
+            if (stack && page) {
+                stack->setCurrentIndex(stack->indexOf(page));
+            }
+            if (auto* edit = main_app.findChild<QLineEdit*>(QStringLiteral("cleanupPathEdit"))) {
+                const QByteArray scan_dir = qgetenv("AIFS_SCREENSHOT_SCAN_DIR");
+                edit->setText(scan_dir.isEmpty() ? QDir::homePath()
+                                                 : QString::fromUtf8(scan_dir));
+            }
+            if (auto* btn = main_app.findChild<QPushButton*>(QStringLiteral("cleanupScanButton"))) {
+                btn->click();
+            }
+        });
+        QTimer::singleShot(8000, &main_app, [&main_app, shot_dir]() {
+            main_app.grab().save(shot_dir + QStringLiteral("/cleanup.png"));
+            QApplication::quit();
+        });
+    }
 
     const int result = app.exec();
     main_app.shutdown();

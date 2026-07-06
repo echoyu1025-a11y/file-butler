@@ -7,6 +7,12 @@ Låt AI städa upp dina stökiga mappar och hitta filer som är värda att rensa
 
 ---
 
+## 📸 Screenshots
+
+| Organize | Clean up |
+| --- | --- |
+| ![Organize](../screenshots/organize.png) | ![Clean up](../screenshots/cleanup.png) |
+
 ## ✨ Två kärnfunktioner
 
 ### 🗂️ Filorganisering

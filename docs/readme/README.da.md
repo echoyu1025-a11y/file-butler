@@ -7,6 +7,12 @@ Lad AI rydde op i dine rodede mapper og finde filer, der er værd at rydde ud. U
 
 ---
 
+## 📸 Screenshots
+
+| Organize | Clean up |
+| --- | --- |
+| ![Organize](../screenshots/organize.png) | ![Clean up](../screenshots/cleanup.png) |
+
 ## ✨ To kernefunktioner
 
 ### 🗂️ Filorganisering

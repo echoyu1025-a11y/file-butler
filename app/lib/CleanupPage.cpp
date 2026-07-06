@@ -59,6 +59,7 @@ QString group_title(const CleanupGroup& group)
 CleanupPage::CleanupPage(QWidget* parent)
     : QWidget(parent)
 {
+    setObjectName(QStringLiteral("cleanupPage"));  // 供截图模式等外部定位
     auto* root_layout = new QVBoxLayout(this);
     root_layout->setContentsMargins(24, 20, 24, 16);
     root_layout->setSpacing(10);
@@ -82,6 +83,7 @@ CleanupPage::CleanupPage(QWidget* parent)
     // Folder selection row.
     auto* path_row = new QHBoxLayout();
     path_edit_ = new QLineEdit(this);
+    path_edit_->setObjectName(QStringLiteral("cleanupPathEdit"));
     path_edit_->setPlaceholderText(page_tr("Choose a folder to scan…"));
     path_row->addWidget(path_edit_, 1);
 
@@ -89,6 +91,7 @@ CleanupPage::CleanupPage(QWidget* parent)
     path_row->addWidget(browse_button_);
 
     scan_button_ = new QPushButton(page_tr("Scan"), this);
+    scan_button_->setObjectName(QStringLiteral("cleanupScanButton"));
     path_row->addWidget(scan_button_);
     root_layout->addLayout(path_row);
 

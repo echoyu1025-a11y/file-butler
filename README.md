@@ -7,6 +7,12 @@
 
 ---
 
+## 📸 界面预览
+
+| 文件整理 | 文件清理 |
+| --- | --- |
+| ![文件整理](docs/screenshots/organize.png) | ![文件清理](docs/screenshots/cleanup.png) |
+
 ## ✨ 两大功能
 
 ### 🗂️ 文件整理

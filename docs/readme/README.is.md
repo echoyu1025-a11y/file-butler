@@ -7,6 +7,12 @@ Láttu gervigreind taka til í óskipulögðum möppum og finna skrár sem vert 
 
 ---
 
+## 📸 Screenshots
+
+| Organize | Clean up |
+| --- | --- |
+| ![Organize](../screenshots/organize.png) | ![Clean up](../screenshots/cleanup.png) |
+
 ## ✨ Tveir megineiginleikar
 
 ### 🗂️ Skráaskipulagning

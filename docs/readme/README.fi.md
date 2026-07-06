@@ -7,6 +7,12 @@ Anna tekoälyn järjestää sotkuiset kansiosi ja löytää siivoamisen arvoiset
 
 ---
 
+## 📸 Screenshots
+
+| Organize | Clean up |
+| --- | --- |
+| ![Organize](../screenshots/organize.png) | ![Clean up](../screenshots/cleanup.png) |
+
 ## ✨ Kaksi ydintoimintoa
 
 ### 🗂️ Tiedostojen järjestäminen

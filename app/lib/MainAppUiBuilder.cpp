@@ -599,6 +599,7 @@ void MainAppUiBuilder::build_central_panel(MainApp& app) {
 
     // 内容区：page 0 = 文件整理（central 原样），page 1 = 文件清理（内嵌页）
     app.main_stack = new QStackedWidget(&app);
+    app.main_stack->setObjectName(QStringLiteral("mainStack"));  // 供截图模式等外部定位
     app.organize_page_index_ = app.main_stack->addWidget(central);
     app.cleanup_page = new CleanupPage(app.main_stack);
     app.cleanup_page_index_ = app.main_stack->addWidget(app.cleanup_page);

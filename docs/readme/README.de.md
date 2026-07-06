@@ -7,6 +7,12 @@ Lass die KI deine unordentlichen Ordner aufräumen und Dateien finden, die sich 
 
 ---
 
+## 📸 Screenshots
+
+| Organize | Clean up |
+| --- | --- |
+| ![Organize](../screenshots/organize.png) | ![Clean up](../screenshots/cleanup.png) |
+
 ## ✨ Zwei Kernfunktionen
 
 ### 🗂️ Dateien organisieren

@@ -139,6 +139,7 @@ app/include/llama/*.h
 # docs/ 下只跟踪多语言 README 和上游构建文档，其余（生成文档等）继续忽略
 /docs/*
 !/docs/readme/
+!/docs/screenshots/
 !/docs/UPSTREAM_README.md
 
 # Build artifacts

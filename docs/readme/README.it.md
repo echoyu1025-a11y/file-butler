@@ -7,6 +7,12 @@ Lascia che l'IA metta in ordine le tue cartelle disordinate e trovi i file che v
 
 ---
 
+## 📸 Screenshots
+
+| Organize | Clean up |
+| --- | --- |
+| ![Organize](../screenshots/organize.png) | ![Clean up](../screenshots/cleanup.png) |
+
 ## ✨ Due funzioni principali
 
 ### 🗂️ Organizzazione dei file

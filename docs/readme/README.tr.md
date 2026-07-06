@@ -7,6 +7,12 @@ Dağınık klasörlerinizi yapay zekâya düzenletin ve temizlenmeye değer dosy
 
 ---
 
+## 📸 Screenshots
+
+| Organize | Clean up |
+| --- | --- |
+| ![Organize](../screenshots/organize.png) | ![Clean up](../screenshots/cleanup.png) |
+
 ## ✨ İki Temel Özellik
 
 ### 🗂️ Dosya Düzenleme

@@ -7,6 +7,12 @@ Laat AI je rommelige mappen opruimen en bestanden vinden die het opschonen waard
 
 ---
 
+## 📸 Screenshots
+
+| Organize | Clean up |
+| --- | --- |
+| ![Organize](../screenshots/organize.png) | ![Clean up](../screenshots/cleanup.png) |
+
 ## ✨ Twee kernfuncties
 
 ### 🗂️ Bestanden organiseren
