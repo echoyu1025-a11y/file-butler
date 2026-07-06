@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #include "LLMClient.hpp"
 #include "Types.hpp"
 #include "Utils.hpp"

@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #ifndef WHITELIST_MANAGER_DIALOG_HPP
 #define WHITELIST_MANAGER_DIALOG_HPP
 

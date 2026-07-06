@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 /**
  * @file VisualModelCatalog.hpp
  * @brief Descriptor catalog for supported local visual model backends.

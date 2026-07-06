@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #ifndef FILE_SCANNER_HPP
 #define FILE_SCANNER_HPP
 

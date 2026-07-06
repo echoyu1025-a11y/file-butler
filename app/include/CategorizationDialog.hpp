@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #ifndef CATEGORIZATIONDIALOG_HPP
 #define CATEGORIZATIONDIALOG_HPP
 

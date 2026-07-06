@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #ifndef GEMINICLIENT_HPP
 #define GEMINICLIENT_HPP
 

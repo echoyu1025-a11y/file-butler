@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 /**
  * @file GgufFileValidation.hpp
  * @brief Lightweight helpers for validating GGUF model artifacts.

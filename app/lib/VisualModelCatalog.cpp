@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #include "VisualModelCatalog.hpp"
 
 #include "GgufFileValidation.hpp"

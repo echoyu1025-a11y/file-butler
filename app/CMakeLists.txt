@@ -1,3 +1,4 @@
+# File Butler — customized edition. Maintained by qianyu.
 cmake_minimum_required(VERSION 3.21)
 
 project(AIFileSorter LANGUAGES CXX)

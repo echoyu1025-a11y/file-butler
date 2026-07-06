@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #ifndef LLM_ERRORS_HPP
 #define LLM_ERRORS_HPP
 

@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #ifndef LOGGER_HPP
 #define LOGGER_HPP
 

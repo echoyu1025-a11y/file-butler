@@ -1,3 +1,5 @@
+<!-- File Butler — customized edition. Maintained by qianyu. -->
+
 # Pika-aloitusopas
 
 AI File Sorter auttaa sinua jarjestamaan tiedostoja tarkistuksen ja hyvaksynnan jalkeen.

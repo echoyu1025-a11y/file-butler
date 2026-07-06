@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #include "GeminiClient.hpp"
 
 #include "Logger.hpp"

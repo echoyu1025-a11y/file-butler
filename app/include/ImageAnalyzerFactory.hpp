@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 /**
  * @file ImageAnalyzerFactory.hpp
  * @brief Factory for creating analyzer instances from resolved visual backends.

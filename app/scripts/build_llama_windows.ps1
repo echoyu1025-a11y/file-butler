@@ -1,3 +1,4 @@
+# File Butler — customized edition. Maintained by qianyu.
 $ErrorActionPreference = "Stop"
 
 # --- Parse optional arguments ---

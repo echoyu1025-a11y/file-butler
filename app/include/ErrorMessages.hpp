@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 /**
  * @file ErrorMessages.hpp
  * @brief Translatable error message constants used throughout the UI.

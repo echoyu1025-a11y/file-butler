@@ -1,3 +1,4 @@
+# File Butler — customized edition. Maintained by qianyu.
 param(
     [string]$BuildDir = (Join-Path (Split-Path -Parent $PSScriptRoot) "build-windows"),
     [ValidateSet("Debug", "Release")]

@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #include "IniConfig.hpp"
 #include "Logger.hpp"
 #include <cstdio>

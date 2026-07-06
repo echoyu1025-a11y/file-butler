@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# File Butler — customized edition. Maintained by qianyu.
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="$ROOT_DIR/tests/build"

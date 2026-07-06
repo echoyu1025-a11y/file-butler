@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #include "SuitabilityBenchmarkDialog.hpp"
 
 #include "DocumentTextAnalyzer.hpp"

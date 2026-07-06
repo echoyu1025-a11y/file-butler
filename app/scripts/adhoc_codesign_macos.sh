@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# File Butler — customized edition. Maintained by qianyu.
 set -euo pipefail
 
 if [[ "$#" -lt 1 ]]; then

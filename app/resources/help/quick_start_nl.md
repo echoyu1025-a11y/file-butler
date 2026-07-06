@@ -1,3 +1,5 @@
+<!-- File Butler — customized edition. Maintained by qianyu. -->
+
 # Snelstartgids
 
 AI File Sorter helpt u bestanden te ordenen na uw controle en goedkeuring.

@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #ifndef DIALOGUTILS_HPP
 #define DIALOGUTILS_HPP
 

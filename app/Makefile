@@ -1,3 +1,4 @@
+# File Butler — customized edition. Maintained by qianyu.
 # Detect platform
 UNAME := $(shell uname | cut -d'-' -f1)
 UNAME_M := $(shell uname -m)
@@ -834,3 +835,4 @@ else ifeq ($(PLATFORM), MacOS)
 endif
 
 -include $(DEPS)
+

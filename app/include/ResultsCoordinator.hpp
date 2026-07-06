@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #ifndef RESULTS_COORDINATOR_HPP
 #define RESULTS_COORDINATOR_HPP
 

@@ -1,3 +1,5 @@
+<!-- File Butler — customized edition. Maintained by qianyu. -->
+
 # Guida rapida
 
 AI File Sorter ti aiuta a organizzare i file dopo la tua revisione e approvazione.

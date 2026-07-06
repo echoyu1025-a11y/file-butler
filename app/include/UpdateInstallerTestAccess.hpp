@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #pragma once
 
 #ifdef AI_FILE_SORTER_TEST_BUILD

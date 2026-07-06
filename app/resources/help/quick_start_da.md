@@ -1,3 +1,5 @@
+<!-- File Butler — customized edition. Maintained by qianyu. -->
+
 # Hurtig startvejledning
 
 AI File Sorter hjaelper dig med at organisere filer efter din gennemgang og godkendelse.

@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 /**
  * @file ImageAnalyzer.hpp
  * @brief Generic image-analysis contracts for visual model backends.

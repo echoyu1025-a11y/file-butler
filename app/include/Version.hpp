@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #ifndef VERSION_HPP
 #define VERSION_HPP
 

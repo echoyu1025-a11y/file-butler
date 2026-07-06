@@ -1,3 +1,5 @@
+<!-- File Butler — customized edition. Maintained by qianyu. -->
+
 # Hizli Baslangic Kilavuzu
 
 AI File Sorter, incelemeniz ve onayinizdan sonra dosyalarinizi duzenlemenize yardim eder.

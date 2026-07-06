@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #ifndef DATABASEMANAGER_HPP
 #define DATABASEMANAGER_HPP
 

@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 /**
  * @file CacheMaintenanceService.hpp
  * @brief Filesystem-backed cache inspection and cleanup helpers.

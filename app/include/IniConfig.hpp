@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #ifndef INICONFIG_HPP
 #define INICONFIG_HPP
 

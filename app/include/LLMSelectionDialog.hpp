@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #ifndef LLMSELECTIONDIALOG_HPP
 #define LLMSELECTIONDIALOG_HPP
 

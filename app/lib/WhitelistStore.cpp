@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #include "WhitelistStore.hpp"
 #include "Logger.hpp"
 #include "Settings.hpp"

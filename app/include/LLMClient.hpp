@@ -1,3 +1,5 @@
+// File Butler — customized edition. Maintained by qianyu.
+
 #ifndef LLMCLIENT_HPP
 #define LLMCLIENT_HPP
 

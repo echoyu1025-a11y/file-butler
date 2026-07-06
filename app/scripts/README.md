@@ -1,3 +1,5 @@
+<!-- File Butler — customized edition. Maintained by qianyu. -->
+
 # Diagnostic Collection Scripts
 
 This folder includes cross-platform scripts for collecting AI File Sorter diagnostics,

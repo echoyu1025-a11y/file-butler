@@ -1,3 +1,4 @@
+# File Butler — customized edition. Maintained by qianyu.
 param(
     [string]$VcpkgRoot,
     [ValidateSet("Debug", "Release")]

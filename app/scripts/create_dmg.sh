@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# File Butler — customized edition. Maintained by qianyu.
 
 # Builds a drag-and-drop DMG for AI File Sorter.
 
