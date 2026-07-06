@@ -53,6 +53,7 @@ class QStackedWidget;
 class QWidget;
 class QLabel;
 class QEvent;
+class CleanupPage;
 class MainAppUiBuilder;
 class MainWindowStateBinder;
 class WhitelistManagerDialog;
@@ -293,7 +294,7 @@ private:
      */
     void show_cache_cleanup_dialog();
     /**
-     * @brief Opens the read-only "Cleanup Suggestions" scanner dialog.
+     * @brief Switches the content area to the embedded read-only cleanup page.
      */
     void show_cleanup_dialog();
     /**
@@ -366,12 +367,13 @@ private:
     std::vector<FileEntry> files_to_categorize;
     std::vector<CategorizedFile> new_files_to_sort;
 
-    QPointer<QStackedWidget> main_stack;              // 首页 / 整理界面切换
-    QPointer<QPushButton> home_organize_button;       // 首页「整理文件夹」大按钮
-    QPointer<QPushButton> home_cleanup_button;        // 首页「清理文件」大按钮
-    QPointer<QPushButton> back_to_home_button;        // 整理界面左上角「返回首页」
-    int home_page_index_{-1};
+    QPointer<QStackedWidget> main_stack;              // 内容区：文件整理 / 文件清理 页切换
+    QPointer<QPushButton> sidebar_organize_button;    // 侧栏「文件整理」导航按钮
+    QPointer<QPushButton> sidebar_cleanup_button;     // 侧栏「文件清理」导航按钮
+    QPointer<QPushButton> sidebar_settings_button;    // 侧栏底部「设置」按钮
+    QPointer<CleanupPage> cleanup_page;               // 内嵌的文件清理页
     int organize_page_index_{-1};
+    int cleanup_page_index_{-1};
     QPointer<QLineEdit> path_entry;
     QPointer<QPushButton> analyze_button;
     QPointer<QPushButton> browse_button;

@@ -4,7 +4,7 @@
 
 #include "CategorizationSession.hpp"
 #include "CacheMaintenanceDialog.hpp"
-#include "CleanupDialog.hpp"
+#include "CleanupPage.hpp"
 #include "CacheMaintenanceService.hpp"
 #include "DialogUtils.hpp"
 #include "ErrorMessages.hpp"
@@ -695,7 +695,10 @@ void MainApp::apply_file_explorer_preferences()
         consistency_pass_action->setChecked(settings.get_consistency_pass_enabled());
     }
 
-    file_explorer_dock->setVisible(show_explorer);
+    // 清理页保持干净：启动/恢复设置时若停在清理页，文件浏览器 dock 不显示（回整理页时按偏好恢复）
+    const bool on_cleanup_page = main_stack
+        && main_stack->currentIndex() == cleanup_page_index_;
+    file_explorer_dock->setVisible(show_explorer && !on_cleanup_page);
     update_results_view_mode();
 }
 
@@ -2469,14 +2472,16 @@ void MainApp::show_cache_cleanup_dialog()
 
 void MainApp::show_cleanup_dialog()
 {
-    std::filesystem::path initial_dir;
+    // 用主界面当前选择的文件夹预填清理页（仅当清理页路径还是空的时候）
     const QString current_path = path_entry ? path_entry->text().trimmed() : QString();
-    if (!current_path.isEmpty()) {
-        initial_dir = std::filesystem::path(current_path.toStdString());
+    if (cleanup_page && !current_path.isEmpty()) {
+        cleanup_page->set_initial_directory(
+            std::filesystem::path(current_path.toStdString()));
     }
 
-    CleanupDialog dialog(initial_dir, this);
-    dialog.exec();
+    if (main_stack && cleanup_page_index_ >= 0) {
+        main_stack->setCurrentIndex(cleanup_page_index_);
+    }
 }
 
 void MainApp::reset_learned_behavior()

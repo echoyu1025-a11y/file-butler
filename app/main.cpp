@@ -18,7 +18,10 @@
 #include <app_version.hpp>
 
 #include <QApplication>
+#include <QColor>
 #include <QCoreApplication>
+#include <QPalette>
+#include <QStyleFactory>
 #include <QDialog>
 #include <QGuiApplication>
 #include <QSplashScreen>
@@ -641,6 +644,35 @@ int run_application(const ParsedArguments& parsed_args)
     int qt_argc = static_cast<int>(parsed_args.qt_args.size()) - 1;
     char** qt_argv = const_cast<char**>(parsed_args.qt_args.data());
     QApplication app(qt_argc, qt_argv);
+
+    // 白色主题：不跟随系统深色模式，按设计原型强制浅色（Fusion 风格保证 Mac/Windows 观感一致）
+    QApplication::setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
+    {
+        QPalette light;
+        const QColor window(0xF5, 0xF5, 0xF7);
+        const QColor base(0xFF, 0xFF, 0xFF);
+        const QColor text(0x1D, 0x1D, 0x1F);
+        const QColor secondary(0x6E, 0x6E, 0x73);
+        const QColor accent(0x18, 0x5F, 0xA5);
+        light.setColor(QPalette::Window, window);
+        light.setColor(QPalette::WindowText, text);
+        light.setColor(QPalette::Base, base);
+        light.setColor(QPalette::AlternateBase, window);
+        light.setColor(QPalette::Text, text);
+        light.setColor(QPalette::Button, base);
+        light.setColor(QPalette::ButtonText, text);
+        light.setColor(QPalette::ToolTipBase, base);
+        light.setColor(QPalette::ToolTipText, text);
+        light.setColor(QPalette::PlaceholderText, secondary);
+        light.setColor(QPalette::Highlight, accent);
+        light.setColor(QPalette::HighlightedText, QColor(Qt::white));
+        light.setColor(QPalette::Link, accent);
+        light.setColor(QPalette::Disabled, QPalette::Text, secondary);
+        light.setColor(QPalette::Disabled, QPalette::ButtonText, secondary);
+        light.setColor(QPalette::Disabled, QPalette::WindowText, secondary);
+        QApplication::setPalette(light);
+    }
+
     const QString instance_id = parsed_args.test_mode
         ? QStringLiteral("net.quicknode.AIFileSorter.Test")
         : QStringLiteral("net.quicknode.AIFileSorter");

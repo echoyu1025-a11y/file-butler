@@ -608,7 +608,7 @@ private:
     std::string default_sort_folder;
     std::string sort_folder;
     std::string skipped_version;
-    bool show_file_explorer{true};
+    bool show_file_explorer{false};  // 新版设计默认隐藏文件浏览器侧栏（视图菜单可开）
     bool suitability_benchmark_completed{false};
     bool suitability_benchmark_suppressed{false};
     std::string benchmark_last_report;

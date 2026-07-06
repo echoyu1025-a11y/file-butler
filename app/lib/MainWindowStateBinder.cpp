@@ -18,6 +18,7 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QSignalBlocker>
+#include <QStackedWidget>
 #include <QStatusBar>
 #include <QToolButton>
 
@@ -381,7 +382,10 @@ void MainWindowStateBinder::restore_file_explorer_visibility()
 {
     const bool show_explorer = app_.settings.get_show_file_explorer();
     if (app_.file_explorer_dock) {
-        app_.file_explorer_dock->setVisible(show_explorer);
+        // 清理页保持干净：恢复窗口状态时若停在清理页，文件浏览器 dock 不显示（回整理页时按偏好恢复）
+        const bool on_cleanup_page = app_.main_stack
+            && app_.main_stack->currentIndex() == app_.cleanup_page_index_;
+        app_.file_explorer_dock->setVisible(show_explorer && !on_cleanup_page);
     }
     if (app_.file_explorer_menu_action) {
         app_.file_explorer_menu_action->setChecked(show_explorer);

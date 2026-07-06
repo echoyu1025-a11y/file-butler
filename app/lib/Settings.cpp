@@ -364,7 +364,7 @@ void Settings::load_basic_settings(const std::function<bool(const char*, bool)>&
         categorize_directories = false;
     }
     sort_folder = config.getValue("Settings", "SortFolder", default_sort_folder.empty() ? std::string("/") : default_sort_folder);
-    show_file_explorer = load_bool("ShowFileExplorer", true);
+    show_file_explorer = load_bool("ShowFileExplorer", false);  // 新版设计默认隐藏文件浏览器侧栏（视图菜单可开）
     suitability_benchmark_completed = load_bool("SuitabilityBenchmarkCompleted", false);
     suitability_benchmark_suppressed = load_bool("SuitabilityBenchmarkSuppressed", false);
     benchmark_last_report = decode_multiline(config.getValue("Settings", "BenchmarkLastReport", ""));

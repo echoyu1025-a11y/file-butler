@@ -3,6 +3,7 @@
 #include "CategoryLanguageSupport.hpp"
 #include "AppInfo.hpp"
 
+#include "CleanupPage.hpp"
 #include "MainApp.hpp"
 #include "MainAppEditActions.hpp"
 #include "MainAppHelpActions.hpp"
@@ -17,10 +18,12 @@
 #include <QApplication>
 #include <QCoreApplication>
 #include <QAbstractItemView>
+#include <QButtonGroup>
 #include <QCheckBox>
 #include <QDir>
 #include <QDockWidget>
 #include <QFileSystemModel>
+#include <QFrame>
 #include <QItemSelectionModel>
 #include <QHeaderView>
 #include <QHBoxLayout>
@@ -39,6 +42,8 @@
 #include <QPainterPath>
 #include <QPaintEvent>
 #include <QPen>
+#include <QPixmap>
+#include <QPoint>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QSlider>
@@ -351,22 +356,23 @@ void MainAppUiBuilder::build_central_panel(MainApp& app) {
     main_layout->setContentsMargins(12, 12, 12, 12);
     main_layout->setSpacing(8);
 
-    auto* path_layout = new QHBoxLayout();
-    // 返回首页的小按钮，放在「文件夹:」行最左边，不碍事。
-    app.back_to_home_button = new QPushButton(central);
-    app.back_to_home_button->setText(
-        QCoreApplication::translate("MainApp", "⌂ Home"));
-    app.back_to_home_button->setToolTip(
-        QCoreApplication::translate("MainApp", "Back to the home page"));
-    app.back_to_home_button->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
-    // 不用 flat：深色主题下 flat 按钮几乎隐形，用户找不到返回入口
-    QObject::connect(app.back_to_home_button, &QPushButton::clicked, &app, [&app]() {
-        if (app.main_stack && app.home_page_index_ >= 0) {
-            app.main_stack->setCurrentIndex(app.home_page_index_);
-        }
-    });
-    path_layout->addWidget(app.back_to_home_button);
+    // ---- 文件整理页页头（照原型 view-organize：18px 加粗标题 + 副标题）----
+    auto* organize_title = new QLabel(
+        QCoreApplication::translate("MainApp", "Organize Files"), central);
+    QFont organize_title_font = organize_title->font();
+    organize_title_font.setPixelSize(18);
+    organize_title_font.setBold(true);
+    organize_title->setFont(organize_title_font);
+    main_layout->addWidget(organize_title);
 
+    auto* organize_subtitle = new QLabel(
+        QCoreApplication::translate(
+            "MainApp", "Choose a folder and let AI categorize and tidy it."),
+        central);
+    organize_subtitle->setWordWrap(true);
+    main_layout->addWidget(organize_subtitle);
+
+    auto* path_layout = new QHBoxLayout();
     app.path_label = new QLabel(central);
     app.path_entry = new QLineEdit(central);
     app.browse_button = new QPushButton(central);
@@ -422,7 +428,12 @@ void MainAppUiBuilder::build_central_panel(MainApp& app) {
         });
     // 语言选择放在首页右上角（见下方首页构建处），不再占用整理界面的路径行。
 
-    main_layout->addLayout(path_layout);
+    // 「文件夹:」行包一层圆角卡片（照原型的路径卡片观感）
+    auto* folder_card = new QFrame(central);
+    folder_card->setObjectName(QStringLiteral("folderCard"));
+    path_layout->setContentsMargins(12, 10, 12, 10);
+    folder_card->setLayout(path_layout);
+    main_layout->addWidget(folder_card);
 
     auto* options_layout = new QHBoxLayout();
     app.use_subcategories_checkbox = new QCheckBox(central);
@@ -584,95 +595,169 @@ void MainAppUiBuilder::build_central_panel(MainApp& app) {
     app.results_stack->setCurrentIndex(app.tree_view_page_index_);
     main_layout->addWidget(app.results_stack, 1);
 
-    // ---- 首页（Home page）----
-    // central（整理界面）原样作为 page 1；首页作为 page 0，默认显示。
-    auto* home_page = new QWidget(&app);
-    auto* home_layout = new QVBoxLayout(home_page);
-    home_layout->setContentsMargins(40, 40, 40, 40);
-    home_layout->setSpacing(16);
+    // ---- 左侧导航栏 + 内容区（照原型：sidebar + QStackedWidget）----
 
-    // 语言选择放在首页右上角，一进来就能切换（label/combo 在上面创建，此处加入布局会自动改父级）
-    auto* home_top_row = new QHBoxLayout();
-    home_top_row->addStretch(1);
-    home_top_row->addWidget(app.category_language_quick_label);
-    home_top_row->addWidget(app.category_language_quick_combo);
-    home_layout->addLayout(home_top_row);
+    // 内容区：page 0 = 文件整理（central 原样），page 1 = 文件清理（内嵌页）
+    app.main_stack = new QStackedWidget(&app);
+    app.organize_page_index_ = app.main_stack->addWidget(central);
+    app.cleanup_page = new CleanupPage(app.main_stack);
+    app.cleanup_page_index_ = app.main_stack->addWidget(app.cleanup_page);
+    app.main_stack->setCurrentIndex(app.organize_page_index_);
 
-    home_layout->addStretch(2);
+    // 侧栏（约 180px，垂直布局）
+    auto* sidebar = new QFrame(&app);
+    sidebar->setObjectName(QStringLiteral("sidebarNav"));
+    sidebar->setFixedWidth(180);
+    auto* sidebar_layout = new QVBoxLayout(sidebar);
+    sidebar_layout->setContentsMargins(12, 16, 12, 12);
+    sidebar_layout->setSpacing(4);
 
-    auto* home_title = new QLabel(app_display_name(), home_page);
-    QFont title_font = home_title->font();
-    title_font.setPointSizeF(title_font.pointSizeF() * 2.4);
-    title_font.setBold(true);
-    home_title->setFont(title_font);
-    home_title->setAlignment(Qt::AlignHCenter);
-    home_layout->addWidget(home_title);
+    // 顶部：app 图标 + 「文件管家」
+    auto* sidebar_header = new QHBoxLayout();
+    sidebar_header->setSpacing(8);
+    auto* sidebar_icon = new QLabel(sidebar);
+    if (QPixmap app_icon_pix(
+            QStringLiteral(":/net/quicknode/AIFileSorter/images/app_icon_128.png"));
+        !app_icon_pix.isNull()) {
+        sidebar_icon->setPixmap(app_icon_pix.scaled(
+            30, 30, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    }
+    sidebar_header->addWidget(sidebar_icon);
+    auto* sidebar_app_name = new QLabel(
+        QCoreApplication::translate("MainApp", "File Butler"), sidebar);
+    QFont app_name_font = sidebar_app_name->font();
+    app_name_font.setPointSizeF(app_name_font.pointSizeF() * 1.1);
+    app_name_font.setWeight(QFont::Medium);
+    sidebar_app_name->setFont(app_name_font);
+    sidebar_header->addWidget(sidebar_app_name);
+    sidebar_header->addStretch(1);
+    sidebar_layout->addLayout(sidebar_header);
+    sidebar_layout->addSpacing(12);
 
-    auto* home_subtitle = new QLabel(
-        QCoreApplication::translate(
-            "MainApp", "Organize your folders with AI, or find files worth cleaning up."),
-        home_page);
-    QFont subtitle_font = home_subtitle->font();
-    subtitle_font.setPointSizeF(subtitle_font.pointSizeF() * 1.2);
-    home_subtitle->setFont(subtitle_font);
-    home_subtitle->setAlignment(Qt::AlignHCenter);
-    home_subtitle->setWordWrap(true);
-    home_layout->addWidget(home_subtitle);
-
-    home_layout->addSpacing(24);
-
-    auto make_home_button = [&](const QString& emoji,
-                                const QString& text) -> QPushButton* {
-        auto* button = new QPushButton(home_page);
-        button->setText(QStringLiteral("%1\n%2").arg(emoji, text));
-        QFont button_font = button->font();
-        button_font.setPointSizeF(button_font.pointSizeF() * 1.5);
-        button_font.setBold(true);
-        button->setFont(button_font);
-        button->setMinimumSize(260, 140);
-        button->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+    // 导航按钮：可选中 + 互斥
+    auto make_nav_button = [&](const QString& icon_glyph,
+                               const QString& text) -> QPushButton* {
+        auto* button = new QPushButton(
+            QStringLiteral("%1  %2").arg(icon_glyph, text), sidebar);
+        button->setCheckable(true);
         button->setCursor(Qt::PointingHandCursor);
+        button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
         return button;
     };
+    app.sidebar_organize_button = make_nav_button(
+        QStringLiteral("▣"),
+        QCoreApplication::translate("MainApp", "Organize Files"));
+    app.sidebar_cleanup_button = make_nav_button(
+        QStringLiteral("✦"),
+        QCoreApplication::translate("MainApp", "Clean Up Files"));
+    auto* nav_group = new QButtonGroup(sidebar);
+    nav_group->setExclusive(true);
+    nav_group->addButton(app.sidebar_organize_button);
+    nav_group->addButton(app.sidebar_cleanup_button);
+    sidebar_layout->addWidget(app.sidebar_organize_button);
+    sidebar_layout->addWidget(app.sidebar_cleanup_button);
+    app.sidebar_organize_button->setChecked(true);
 
-    app.home_organize_button = make_home_button(
-        QStringLiteral("🗂️"),
-        QCoreApplication::translate("MainApp", "Organize Folders"));
-    app.home_organize_button->setToolTip(QCoreApplication::translate(
-        "MainApp", "Categorize and sort the contents of a folder with AI."));
-    QObject::connect(app.home_organize_button, &QPushButton::clicked, &app, [&app]() {
+    QObject::connect(app.sidebar_organize_button, &QPushButton::clicked, &app, [&app]() {
         if (app.main_stack && app.organize_page_index_ >= 0) {
             app.main_stack->setCurrentIndex(app.organize_page_index_);
         }
     });
-
-    app.home_cleanup_button = make_home_button(
-        QStringLiteral("🧹"),
-        QCoreApplication::translate("MainApp", "Clean Up Files"));
-    app.home_cleanup_button->setToolTip(QCoreApplication::translate(
-        "MainApp",
-        "Scan a folder for junk, duplicates, large files, and empty items. "
-        "Nothing is ever deleted."));
-    QObject::connect(app.home_cleanup_button, &QPushButton::clicked, &app, [&app]() {
+    QObject::connect(app.sidebar_cleanup_button, &QPushButton::clicked, &app, [&app]() {
         app.show_cleanup_dialog();
     });
 
-    auto* home_buttons_row = new QHBoxLayout();
-    home_buttons_row->addStretch(1);
-    home_buttons_row->addWidget(app.home_organize_button);
-    home_buttons_row->addSpacing(24);
-    home_buttons_row->addWidget(app.home_cleanup_button);
-    home_buttons_row->addStretch(1);
-    home_layout->addLayout(home_buttons_row);
+    sidebar_layout->addStretch(1);
 
-    home_layout->addStretch(3);
+    // 底部：语言下拉（label/combo 在上面创建，此处加入布局会自动改父级）+ 设置
+    sidebar_layout->addWidget(app.category_language_quick_label);
+    sidebar_layout->addWidget(app.category_language_quick_combo);
+    sidebar_layout->addSpacing(8);
 
-    app.main_stack = new QStackedWidget(&app);
-    app.home_page_index_ = app.main_stack->addWidget(home_page);
-    app.organize_page_index_ = app.main_stack->addWidget(central);
-    app.main_stack->setCurrentIndex(app.home_page_index_);
+    app.sidebar_settings_button = new QPushButton(
+        QStringLiteral("⚙  %1").arg(
+            QCoreApplication::translate("MainApp", "Settings")),
+        sidebar);
+    app.sidebar_settings_button->setCursor(Qt::PointingHandCursor);
+    app.sidebar_settings_button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    QObject::connect(app.sidebar_settings_button, &QPushButton::clicked, &app, [&app]() {
+        if (!app.settings_menu || !app.sidebar_settings_button) {
+            return;
+        }
+        // 在按钮上方弹出设置菜单（按钮位于侧栏底部）
+        const QPoint above(0, -app.settings_menu->sizeHint().height());
+        app.settings_menu->popup(app.sidebar_settings_button->mapToGlobal(above));
+    });
+    sidebar_layout->addWidget(app.sidebar_settings_button);
 
-    app.setCentralWidget(app.main_stack);
+    // 页切换时：同步导航选中态；清理页隐藏文件浏览器 dock，整理页按偏好恢复
+    QObject::connect(app.main_stack, &QStackedWidget::currentChanged, &app, [&app](int index) {
+        const bool on_cleanup = index == app.cleanup_page_index_;
+        if (app.sidebar_organize_button) {
+            app.sidebar_organize_button->setChecked(!on_cleanup);
+        }
+        if (app.sidebar_cleanup_button) {
+            app.sidebar_cleanup_button->setChecked(on_cleanup);
+        }
+        if (!app.file_explorer_dock) {
+            return;
+        }
+        if (on_cleanup) {
+            app.file_explorer_dock->hide();
+        } else {
+            app.file_explorer_dock->setVisible(app.settings.get_show_file_explorer());
+        }
+    });
+
+    // 根容器：侧栏 | 内容区
+    auto* root_widget = new QWidget(&app);
+    auto* root_row = new QHBoxLayout(root_widget);
+    root_row->setContentsMargins(0, 0, 0, 0);
+    root_row->setSpacing(0);
+    root_row->addWidget(sidebar);
+    root_row->addWidget(app.main_stack, 1);
+    app.setCentralWidget(root_widget);
+
+    // 适度的全局 QSS：只用 objectName 定向覆盖侧栏与新增卡片，不动系统主题其余部分
+    // 白色主题 QSS（配色对齐设计原型：白底、浅灰边、蓝色 #185FA5 强调）
+    app.setStyleSheet(QStringLiteral(
+        "#sidebarNav {"
+        "  background: #F5F5F7;"
+        "  border-right: 1px solid #E5E5EA;"
+        "}"
+        "#sidebarNav QPushButton {"
+        "  border: none;"
+        "  border-radius: 8px;"
+        "  padding: 9px 10px;"
+        "  text-align: left;"
+        "  background: transparent;"
+        "  color: #6E6E73;"
+        "}"
+        "#sidebarNav QPushButton:hover {"
+        "  background: #EAEAEE;"
+        "}"
+        "#sidebarNav QPushButton:checked {"
+        "  background: rgba(24, 95, 165, 0.10);"
+        "  color: #185FA5;"
+        "  font-weight: 600;"
+        "}"
+        "#folderCard {"
+        "  background: #FFFFFF;"
+        "  border: 1px solid #E5E5EA;"
+        "  border-radius: 10px;"
+        "}"
+        "#cleanupBanner {"
+        "  background: #E8F1FA;"
+        "  border: 1px solid rgba(24, 95, 165, 0.30);"
+        "  border-radius: 10px;"
+        "}"
+        "#cleanupBanner QLabel {"
+        "  color: #185FA5;"
+        "}"
+        "#cleanupBannerSize {"
+        "  color: #0C447C;"
+        "  font-weight: 600;"
+        "}"));
 }
 
 UiTranslator::Dependencies MainAppUiBuilder::build_translator_dependencies(MainApp& app) const
@@ -851,7 +936,10 @@ void MainAppUiBuilder::build_view_menu(MainApp& app) {
     app.toggle_explorer_action->setChecked(app.settings.get_show_file_explorer());
     QObject::connect(app.toggle_explorer_action, &QAction::toggled, &app, [&app](bool checked) {
         if (app.file_explorer_dock) {
-            app.file_explorer_dock->setVisible(checked);
+            // 清理页上不显示文件浏览器 dock（偏好照常保存，回整理页时生效）
+            const bool on_cleanup = app.main_stack
+                && app.main_stack->currentIndex() == app.cleanup_page_index_;
+            app.file_explorer_dock->setVisible(checked && !on_cleanup);
         }
         app.settings.set_show_file_explorer(checked);
         app.update_results_view_mode();

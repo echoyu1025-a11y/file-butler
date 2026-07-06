@@ -986,34 +986,121 @@ Supports: Nvidia (CUDA), Apple (Metal), CPU.</source>
         </message>
     </context>
     <context>
+        <name>CleanupPage</name>
+        <message>
+            <source>File Cleanup</source>
+            <translation>文件清理</translation>
+        </message>
+        <message>
+            <source>Analyze files you may not need. Click an item to jump to its location and delete it manually.</source>
+            <translation>分析可能不需要的文件，点击可跳转到所在位置手动删除。</translation>
+        </message>
+        <message>
+            <source>Choose a folder to scan…</source>
+            <translation>选择要扫描的文件夹…</translation>
+        </message>
+        <message>
+            <source>Browse…</source>
+            <translation>浏览…</translation>
+        </message>
+        <message>
+            <source>Scan</source>
+            <translation>扫描</translation>
+        </message>
+        <message>
+            <source>No scan yet.</source>
+            <translation>尚未扫描。</translation>
+        </message>
+        <message>
+            <source>Scan complete — estimated reclaimable space</source>
+            <translation>扫描完成，预计可释放</translation>
+        </message>
+        <message>
+            <source>%1 item(s) found</source>
+            <translation>共 %1 个项目</translation>
+        </message>
+        <message>
+            <source>Name</source>
+            <translation>名称</translation>
+        </message>
+        <message>
+            <source>Size</source>
+            <translation>大小</translation>
+        </message>
+        <message>
+            <source>Location</source>
+            <translation>位置</translation>
+        </message>
+        <message>
+            <source>Show in File Manager</source>
+            <translation>在文件管理器中显示</translation>
+        </message>
+        <message>
+            <source>🛡 For safety, nothing is deleted automatically. Please review and remove files yourself.</source>
+            <translation>🛡 为安全起见，软件不会自动删除，需你确认后手动处理。</translation>
+        </message>
+        <message>
+            <source>Select folder to scan</source>
+            <translation>选择要扫描的文件夹</translation>
+        </message>
+        <message>
+            <source>Please choose a folder to scan first.</source>
+            <translation>请先选择要扫描的文件夹。</translation>
+        </message>
+        <message>
+            <source>Scanning…</source>
+            <translation>正在扫描…</translation>
+        </message>
+        <message>
+            <source>Junk / cache files</source>
+            <translation>垃圾 / 缓存文件</translation>
+        </message>
+        <message>
+            <source>Duplicate files</source>
+            <translation>重复文件</translation>
+        </message>
+        <message>
+            <source>Large files (over 100 MB)</source>
+            <translation>大文件（超过 100 MB）</translation>
+        </message>
+        <message>
+            <source>Empty folders / zero-byte files</source>
+            <translation>空文件夹 / 零字节文件</translation>
+        </message>
+        <message>
+            <source>%1  —  %2 item(s), %3</source>
+            <translation>%1  —  %2 个项目，%3</translation>
+        </message>
+        <message>
+            <source>(folder)</source>
+            <translation>（文件夹）</translation>
+        </message>
+        <message>
+            <source>duplicate of %1</source>
+            <translation>与 %1 重复</translation>
+        </message>
+    </context>
+    <context>
         <name>MainApp</name>
         <message>
-            <source>⌂ Home</source>
-            <translation>⌂ 首页</translation>
+            <source>File Butler</source>
+            <translation>文件管家</translation>
         </message>
         <message>
-            <source>Back to the home page</source>
-            <translation>返回首页</translation>
-        </message>
-        <message>
-            <source>Organize your folders with AI, or find files worth cleaning up.</source>
-            <translation>用 AI 整理你的文件夹，或找出值得清理的文件。</translation>
-        </message>
-        <message>
-            <source>Organize Folders</source>
-            <translation>整理文件夹</translation>
+            <source>Organize Files</source>
+            <translation>文件整理</translation>
         </message>
         <message>
             <source>Clean Up Files</source>
-            <translation>清理文件</translation>
+            <translation>文件清理</translation>
         </message>
         <message>
-            <source>Categorize and sort the contents of a folder with AI.</source>
-            <translation>用 AI 对文件夹内容进行分类整理。</translation>
+            <source>Settings</source>
+            <translation>设置</translation>
         </message>
         <message>
-            <source>Scan a folder for junk, duplicates, large files, and empty items. Nothing is ever deleted.</source>
-            <translation>扫描文件夹中的垃圾、重复文件、大文件和空项目。绝不会删除任何文件。</translation>
+            <source>Choose a folder and let AI categorize and tidy it.</source>
+            <translation>选择一个文件夹，用 AI 自动归类整理。</translation>
         </message>
         <message>
             <source>Language:</source>
