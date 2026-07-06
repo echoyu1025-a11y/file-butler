@@ -293,6 +293,10 @@ private:
      */
     void show_cache_cleanup_dialog();
     /**
+     * @brief Opens the read-only "Cleanup Suggestions" scanner dialog.
+     */
+    void show_cleanup_dialog();
+    /**
      * @brief Confirms and resets locally learned categorization behavior.
      */
     void reset_learned_behavior();
@@ -362,11 +366,19 @@ private:
     std::vector<FileEntry> files_to_categorize;
     std::vector<CategorizedFile> new_files_to_sort;
 
+    QPointer<QStackedWidget> main_stack;              // 首页 / 整理界面切换
+    QPointer<QPushButton> home_organize_button;       // 首页「整理文件夹」大按钮
+    QPointer<QPushButton> home_cleanup_button;        // 首页「清理文件」大按钮
+    QPointer<QPushButton> back_to_home_button;        // 整理界面左上角「返回首页」
+    int home_page_index_{-1};
+    int organize_page_index_{-1};
     QPointer<QLineEdit> path_entry;
     QPointer<QPushButton> analyze_button;
     QPointer<QPushButton> browse_button;
     QPointer<QLabel> backend_status_label;
     QPointer<QLabel> path_label;
+    QPointer<QLabel> category_language_quick_label;   // 中文版：主界面显眼的类别语言快捷切换
+    QPointer<QComboBox> category_language_quick_combo;
     QPointer<QCheckBox> use_subcategories_checkbox;
     QPointer<QLabel> categorization_style_heading;
     QPointer<QRadioButton> categorization_style_refined_radio;
@@ -428,6 +440,7 @@ private:
     QAction* manage_whitelists_action{nullptr};
     QAction* reset_learning_action{nullptr};
     QAction* clear_cache_action{nullptr};
+    QAction* cleanup_scan_action{nullptr};
     QAction* development_prompt_logging_action{nullptr};
     QAction* run_large_whitelist_llm_test_action{nullptr};
     QAction* consistency_pass_action{nullptr};

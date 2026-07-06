@@ -177,6 +177,10 @@ std::string normalize_visual_model_id(const std::string& value)
 
 Language system_default_language()
 {
+    // 中文版：无条件默认简体中文界面，不再跟随系统语言。
+    // 如需恢复"跟随系统语言"的原始行为，删除下面这一行即可。
+    return Language::SimplifiedChinese;
+
     const QLocale locale = QLocale::system();
     switch (locale.language()) {
         case QLocale::Chinese:
@@ -230,7 +234,7 @@ bool file_exists_for_env_url(const char* env_key)
 
 
 Settings::Settings()
-    : use_subcategories(true),
+    : use_subcategories(false),  // 中文版：默认不建子分类文件夹，只按主分类归一级，减少文件夹碎片
       categorize_files(true),
       categorize_directories(false),
       include_subdirectories(false),
@@ -314,7 +318,7 @@ void Settings::load_basic_settings(const std::function<bool(const char*, bool)>&
     llm_downloads_expanded = load_bool("LLMDownloadsExpanded", true);
     visual_model_id = normalize_visual_model_id(
         config.getValue("Settings", "VisualModelId", default_visual_model_descriptor().id));
-    use_subcategories = load_bool("UseSubcategories", true);
+    use_subcategories = load_bool("UseSubcategories", false);  // 中文版：默认关闭子分类，见构造函数说明
     use_consistency_hints = load_bool("UseConsistencyHints", false);
     categorize_files = load_bool("CategorizeFiles", true);
     categorize_directories = load_bool("CategorizeDirectories", false);

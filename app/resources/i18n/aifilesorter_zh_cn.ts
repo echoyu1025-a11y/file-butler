@@ -895,7 +895,134 @@ Supports: Nvidia (CUDA), Apple (Metal), CPU.</source>
         </message>
     </context>
     <context>
+        <name>CleanupDialog</name>
+        <message>
+            <source>Cleanup Suggestions</source>
+            <translation>清理建议</translation>
+        </message>
+        <message>
+            <source>This tool only counts and locates files. It never deletes or moves anything. Please review the results yourself and delete items manually in your file manager.</source>
+            <translation>本工具只做统计和定位，绝不会删除或移动任何文件。请自行确认结果后，在文件管理器中手动删除。</translation>
+        </message>
+        <message>
+            <source>Junk / cache files</source>
+            <translation>垃圾 / 缓存文件</translation>
+        </message>
+        <message>
+            <source>Duplicate files</source>
+            <translation>重复文件</translation>
+        </message>
+        <message>
+            <source>Large files (over 100 MB)</source>
+            <translation>大文件（超过 100 MB）</translation>
+        </message>
+        <message>
+            <source>Empty folders / zero-byte files</source>
+            <translation>空文件夹 / 零字节文件</translation>
+        </message>
+        <message>
+            <source>Choose a folder to scan…</source>
+            <translation>选择要扫描的文件夹…</translation>
+        </message>
+        <message>
+            <source>Browse…</source>
+            <translation>浏览…</translation>
+        </message>
+        <message>
+            <source>Scan</source>
+            <translation>扫描</translation>
+        </message>
+        <message>
+            <source>No scan yet.</source>
+            <translation>尚未扫描。</translation>
+        </message>
+        <message>
+            <source>Name</source>
+            <translation>名称</translation>
+        </message>
+        <message>
+            <source>Size</source>
+            <translation>大小</translation>
+        </message>
+        <message>
+            <source>Location</source>
+            <translation>位置</translation>
+        </message>
+        <message>
+            <source>Show in File Manager</source>
+            <translation>在文件管理器中显示</translation>
+        </message>
+        <message>
+            <source>Close</source>
+            <translation>关闭</translation>
+        </message>
+        <message>
+            <source>Select folder to scan</source>
+            <translation>选择要扫描的文件夹</translation>
+        </message>
+        <message>
+            <source>Please choose a folder to scan first.</source>
+            <translation>请先选择要扫描的文件夹。</translation>
+        </message>
+        <message>
+            <source>Scanning…</source>
+            <translation>正在扫描…</translation>
+        </message>
+        <message>
+            <source>Found %1 cleanup item(s), about %2 reclaimable in total.</source>
+            <translation>共发现 %1 个可清理项，合计约可释放 %2。</translation>
+        </message>
+        <message>
+            <source>%1  —  %2 item(s), %3</source>
+            <translation>%1  —  %2 个项目，%3</translation>
+        </message>
+        <message>
+            <source>(folder)</source>
+            <translation>（文件夹）</translation>
+        </message>
+        <message>
+            <source>duplicate of %1</source>
+            <translation>与 %1 重复</translation>
+        </message>
+    </context>
+    <context>
         <name>MainApp</name>
+        <message>
+            <source>⌂ Home</source>
+            <translation>⌂ 首页</translation>
+        </message>
+        <message>
+            <source>Back to the home page</source>
+            <translation>返回首页</translation>
+        </message>
+        <message>
+            <source>Organize your folders with AI, or find files worth cleaning up.</source>
+            <translation>用 AI 整理你的文件夹，或找出值得清理的文件。</translation>
+        </message>
+        <message>
+            <source>Organize Folders</source>
+            <translation>整理文件夹</translation>
+        </message>
+        <message>
+            <source>Clean Up Files</source>
+            <translation>清理文件</translation>
+        </message>
+        <message>
+            <source>Categorize and sort the contents of a folder with AI.</source>
+            <translation>用 AI 对文件夹内容进行分类整理。</translation>
+        </message>
+        <message>
+            <source>Scan a folder for junk, duplicates, large files, and empty items. Nothing is ever deleted.</source>
+            <translation>扫描文件夹中的垃圾、重复文件、大文件和空项目。绝不会删除任何文件。</translation>
+        </message>
+        <message>
+            <source>Language:</source>
+            <translation>语言：</translation>
+        </message>
+        <message>
+            <source>Application language. The category names are generated in this same language.</source>
+            <translation>软件语言。生成的分类名称将使用同一语言。</translation>
+        </message>
         <message>
             <location filename="../../lib/MainApp.cpp" line="511" />
             <source>File Explorer</source>

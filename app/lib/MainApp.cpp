@@ -4,6 +4,7 @@
 
 #include "CategorizationSession.hpp"
 #include "CacheMaintenanceDialog.hpp"
+#include "CleanupDialog.hpp"
 #include "CacheMaintenanceService.hpp"
 #include "DialogUtils.hpp"
 #include "ErrorMessages.hpp"
@@ -945,6 +946,14 @@ void MainApp::on_language_selected(Language language)
 {
     settings.set_language(language);
     TranslationManager::instance().set_language(language);
+
+    // 中文版：软件语言与分类语言合并——切界面语言时，分类输出语言自动跟随同一种。
+    // 界面语言的显示名（如 "Simplified Chinese"）正好能被 categoryLanguageFromString 匹配。
+    const CategoryLanguage matched_category_language =
+        categoryLanguageFromString(languageToString(language));
+    settings.set_category_language(matched_category_language);
+    refresh_category_language_menu();
+
     if (ui_translator_) {
         ui_translator_->update_language_checks();
     }
@@ -1055,6 +1064,16 @@ void MainApp::refresh_category_language_menu()
 
     if (ui_translator_) {
         ui_translator_->update_language_checks();
+    }
+
+    // 中文版：把主界面的快捷下拉框同步到当前类别语言（阻断信号避免回环）
+    if (category_language_quick_combo) {
+        const CategoryLanguage now = settings.get_category_language();
+        const int idx = category_language_quick_combo->findData(static_cast<int>(now));
+        QSignalBlocker blocker(category_language_quick_combo);
+        if (idx >= 0) {
+            category_language_quick_combo->setCurrentIndex(idx);
+        }
     }
 }
 
@@ -2445,6 +2464,18 @@ void MainApp::show_cache_cleanup_dialog()
             }});
 
     CacheMaintenanceDialog dialog(service, analysis_in_progress_, this);
+    dialog.exec();
+}
+
+void MainApp::show_cleanup_dialog()
+{
+    std::filesystem::path initial_dir;
+    const QString current_path = path_entry ? path_entry->text().trimmed() : QString();
+    if (!current_path.isEmpty()) {
+        initial_dir = std::filesystem::path(current_path.toStdString());
+    }
+
+    CleanupDialog dialog(initial_dir, this);
     dialog.exec();
 }
 

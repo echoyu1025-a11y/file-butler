@@ -177,3 +177,4 @@ api-key-encryption/
 #Ignore vscode AI rules
 .github/instructions/codacy.instructions.md
 /changelog/
+_old_icons_backup/

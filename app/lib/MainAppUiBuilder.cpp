@@ -9,6 +9,8 @@
 #include "UiTranslator.hpp"
 #include "Language.hpp"
 #include "CategoryLanguage.hpp"
+#include <array>
+#include <utility>
 
 #include <QAction>
 #include <QActionGroup>
@@ -350,12 +352,76 @@ void MainAppUiBuilder::build_central_panel(MainApp& app) {
     main_layout->setSpacing(8);
 
     auto* path_layout = new QHBoxLayout();
+    // 返回首页的小按钮，放在「文件夹:」行最左边，不碍事。
+    app.back_to_home_button = new QPushButton(central);
+    app.back_to_home_button->setText(
+        QCoreApplication::translate("MainApp", "⌂ Home"));
+    app.back_to_home_button->setToolTip(
+        QCoreApplication::translate("MainApp", "Back to the home page"));
+    app.back_to_home_button->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    // 不用 flat：深色主题下 flat 按钮几乎隐形，用户找不到返回入口
+    QObject::connect(app.back_to_home_button, &QPushButton::clicked, &app, [&app]() {
+        if (app.main_stack && app.home_page_index_ >= 0) {
+            app.main_stack->setCurrentIndex(app.home_page_index_);
+        }
+    });
+    path_layout->addWidget(app.back_to_home_button);
+
     app.path_label = new QLabel(central);
     app.path_entry = new QLineEdit(central);
     app.browse_button = new QPushButton(central);
     path_layout->addWidget(app.path_label);
     path_layout->addWidget(app.path_entry, 1);
     path_layout->addWidget(app.browse_button);
+
+    // 中文版：主界面显眼的「软件语言」快捷切换。
+    // 切它会同时改界面语言和分类输出语言（二者已合并，见 MainApp::on_language_selected）。
+    // 用各语言的母语名显示，方便对应国家的用户识别。
+    app.category_language_quick_label = new QLabel(central);
+    app.category_language_quick_label->setText(
+        QCoreApplication::translate("MainApp", "Language:"));
+    app.category_language_quick_combo = new QComboBox(central);
+    app.category_language_quick_combo->setToolTip(
+        QCoreApplication::translate("MainApp",
+            "Application language. The category names are generated in this same language."));
+    // 15 种完整翻译的界面语言，pair<Language, 母语显示名>
+    const std::array<std::pair<Language, QString>, 15> ui_languages = {{
+        {Language::English,           QStringLiteral("English")},
+        {Language::SimplifiedChinese, QStringLiteral("简体中文")},
+        {Language::French,            QStringLiteral("Français")},
+        {Language::German,            QStringLiteral("Deutsch")},
+        {Language::Spanish,           QStringLiteral("Español")},
+        {Language::Italian,           QStringLiteral("Italiano")},
+        {Language::Dutch,             QStringLiteral("Nederlands")},
+        {Language::Korean,            QStringLiteral("한국어")},
+        {Language::Hindi,             QStringLiteral("हिन्दी")},
+        {Language::Turkish,           QStringLiteral("Türkçe")},
+        {Language::Swedish,           QStringLiteral("Svenska")},
+        {Language::Norwegian,         QStringLiteral("Norsk")},
+        {Language::Danish,            QStringLiteral("Dansk")},
+        {Language::Finnish,           QStringLiteral("Suomi")},
+        {Language::Icelandic,         QStringLiteral("Íslenska")},
+    }};
+    for (const auto& [lang, native_name] : ui_languages) {
+        app.category_language_quick_combo->addItem(native_name, static_cast<int>(lang));
+    }
+    // 用当前界面语言初始化选中项
+    {
+        const int cur = static_cast<int>(app.settings.get_language());
+        const int idx = app.category_language_quick_combo->findData(cur);
+        if (idx >= 0) {
+            app.category_language_quick_combo->setCurrentIndex(idx);
+        }
+    }
+    QObject::connect(app.category_language_quick_combo,
+        QOverload<int>::of(&QComboBox::currentIndexChanged), &app,
+        [&app](int index) {
+            if (index < 0) return;
+            const int data = app.category_language_quick_combo->itemData(index).toInt();
+            app.on_language_selected(static_cast<Language>(data));
+        });
+    // 语言选择放在首页右上角（见下方首页构建处），不再占用整理界面的路径行。
+
     main_layout->addLayout(path_layout);
 
     auto* options_layout = new QHBoxLayout();
@@ -518,7 +584,95 @@ void MainAppUiBuilder::build_central_panel(MainApp& app) {
     app.results_stack->setCurrentIndex(app.tree_view_page_index_);
     main_layout->addWidget(app.results_stack, 1);
 
-    app.setCentralWidget(central);
+    // ---- 首页（Home page）----
+    // central（整理界面）原样作为 page 1；首页作为 page 0，默认显示。
+    auto* home_page = new QWidget(&app);
+    auto* home_layout = new QVBoxLayout(home_page);
+    home_layout->setContentsMargins(40, 40, 40, 40);
+    home_layout->setSpacing(16);
+
+    // 语言选择放在首页右上角，一进来就能切换（label/combo 在上面创建，此处加入布局会自动改父级）
+    auto* home_top_row = new QHBoxLayout();
+    home_top_row->addStretch(1);
+    home_top_row->addWidget(app.category_language_quick_label);
+    home_top_row->addWidget(app.category_language_quick_combo);
+    home_layout->addLayout(home_top_row);
+
+    home_layout->addStretch(2);
+
+    auto* home_title = new QLabel(app_display_name(), home_page);
+    QFont title_font = home_title->font();
+    title_font.setPointSizeF(title_font.pointSizeF() * 2.4);
+    title_font.setBold(true);
+    home_title->setFont(title_font);
+    home_title->setAlignment(Qt::AlignHCenter);
+    home_layout->addWidget(home_title);
+
+    auto* home_subtitle = new QLabel(
+        QCoreApplication::translate(
+            "MainApp", "Organize your folders with AI, or find files worth cleaning up."),
+        home_page);
+    QFont subtitle_font = home_subtitle->font();
+    subtitle_font.setPointSizeF(subtitle_font.pointSizeF() * 1.2);
+    home_subtitle->setFont(subtitle_font);
+    home_subtitle->setAlignment(Qt::AlignHCenter);
+    home_subtitle->setWordWrap(true);
+    home_layout->addWidget(home_subtitle);
+
+    home_layout->addSpacing(24);
+
+    auto make_home_button = [&](const QString& emoji,
+                                const QString& text) -> QPushButton* {
+        auto* button = new QPushButton(home_page);
+        button->setText(QStringLiteral("%1\n%2").arg(emoji, text));
+        QFont button_font = button->font();
+        button_font.setPointSizeF(button_font.pointSizeF() * 1.5);
+        button_font.setBold(true);
+        button->setFont(button_font);
+        button->setMinimumSize(260, 140);
+        button->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+        button->setCursor(Qt::PointingHandCursor);
+        return button;
+    };
+
+    app.home_organize_button = make_home_button(
+        QStringLiteral("🗂️"),
+        QCoreApplication::translate("MainApp", "Organize Folders"));
+    app.home_organize_button->setToolTip(QCoreApplication::translate(
+        "MainApp", "Categorize and sort the contents of a folder with AI."));
+    QObject::connect(app.home_organize_button, &QPushButton::clicked, &app, [&app]() {
+        if (app.main_stack && app.organize_page_index_ >= 0) {
+            app.main_stack->setCurrentIndex(app.organize_page_index_);
+        }
+    });
+
+    app.home_cleanup_button = make_home_button(
+        QStringLiteral("🧹"),
+        QCoreApplication::translate("MainApp", "Clean Up Files"));
+    app.home_cleanup_button->setToolTip(QCoreApplication::translate(
+        "MainApp",
+        "Scan a folder for junk, duplicates, large files, and empty items. "
+        "Nothing is ever deleted."));
+    QObject::connect(app.home_cleanup_button, &QPushButton::clicked, &app, [&app]() {
+        app.show_cleanup_dialog();
+    });
+
+    auto* home_buttons_row = new QHBoxLayout();
+    home_buttons_row->addStretch(1);
+    home_buttons_row->addWidget(app.home_organize_button);
+    home_buttons_row->addSpacing(24);
+    home_buttons_row->addWidget(app.home_cleanup_button);
+    home_buttons_row->addStretch(1);
+    home_layout->addLayout(home_buttons_row);
+
+    home_layout->addStretch(3);
+
+    app.main_stack = new QStackedWidget(&app);
+    app.home_page_index_ = app.main_stack->addWidget(home_page);
+    app.organize_page_index_ = app.main_stack->addWidget(central);
+    app.main_stack->setCurrentIndex(app.home_page_index_);
+
+    app.setCentralWidget(app.main_stack);
 }
 
 UiTranslator::Dependencies MainAppUiBuilder::build_translator_dependencies(MainApp& app) const
@@ -579,6 +733,7 @@ UiTranslator::Dependencies MainAppUiBuilder::build_translator_dependencies(MainA
             app.manage_whitelists_action,
             app.reset_learning_action,
             app.clear_cache_action,
+            app.cleanup_scan_action,
             app.development_prompt_logging_action,
             app.run_large_whitelist_llm_test_action,
             app.consistency_pass_action,
@@ -835,6 +990,14 @@ void MainAppUiBuilder::build_settings_menu(MainApp& app) {
                      &QAction::triggered,
                      &app,
                      &MainApp::show_cache_cleanup_dialog);
+
+    app.cleanup_scan_action = app.settings_menu->addAction(
+        icon_for(app, "edit-find", QStyle::SP_FileDialogContentsView),
+        QString());
+    QObject::connect(app.cleanup_scan_action,
+                     &QAction::triggered,
+                     &app,
+                     &MainApp::show_cleanup_dialog);
 }
 
 void MainAppUiBuilder::build_plugins_menu(MainApp& app) {

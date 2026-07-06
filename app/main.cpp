@@ -8,6 +8,7 @@
 #include "LlmCatalog.hpp"
 #include "MainApp.hpp"
 #include "SingleInstanceCoordinator.hpp"
+#include "TranslationManager.hpp"
 #include "UpdaterBuildConfig.hpp"
 #include "UpdaterLaunchOptions.hpp"
 #include "UpdaterLiveTestConfig.hpp"
@@ -661,6 +662,10 @@ int run_application(const ParsedArguments& parsed_args)
     }
 
     const auto finish_splash = [&]() {};
+
+    // 中文版：在弹出"选择 LLM 模式"对话框之前就加载界面翻译，
+    // 否则该对话框（早于 MainApp 构造）会显示英文。
+    TranslationManager::instance().initialize_for_app(&app, settings.get_language());
 
     if (!ensure_llm_choice(settings, finish_splash)) {
         return EXIT_SUCCESS;

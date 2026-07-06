@@ -101,6 +101,7 @@ public:
         QAction*& manage_whitelists_action;
         QAction*& reset_learning_action;
         QAction*& clear_cache_action;
+        QAction*& cleanup_scan_action;
         QAction*& development_prompt_logging_action;
         QAction*& run_large_whitelist_llm_test_action;
         QAction*& consistency_pass_action;

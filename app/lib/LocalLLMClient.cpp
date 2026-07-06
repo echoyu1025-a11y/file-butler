@@ -769,8 +769,13 @@ std::string generic_file_categorization_system_prompt() {
            "from that list only. Use Other only when it is listed and none of the "
            "other listed main categories clearly fits. Reply with exactly one line "
            "in the format <Main category> : <Subcategory>. Main category must be "
-           "broad (one or two words, plural). Subcategory must be specific, "
-           "relevant, and must not repeat the main category. Do not explain your "
+           "VERY broad and general (one or two words, plural) so that MANY "
+           "different files share the same main category. Strongly prefer reusing "
+           "common, well-known top-level categories such as Documents, Images, "
+           "Videos, Audio, Software, Projects, Work, Finance, Archives, or Code. "
+           "Never invent a narrow main category for a single file; when in doubt, "
+           "pick the broadest reasonable category. Subcategory must be relevant "
+           "and must not repeat the main category. Do not explain your "
            "answer, add extra lines, or use label words like 'Category' or "
            "'Subcategory'. If uncertain, make your best guess from the name only.";
 }
@@ -785,8 +790,12 @@ std::string document_categorization_system_prompt() {
            "list, choose the main category from that list only. Otherwise keep the "
            "main category broad and filesystem-friendly, and use the subcategory "
            "for the specific topic. Reply with exactly one line in the format "
-           "<Main category> : <Subcategory>. Main category must be broad (one or "
-           "two words, plural). Subcategory must be specific, relevant, and must "
+           "<Main category> : <Subcategory>. Main category must be VERY broad and "
+           "general (one or two words, plural) so that MANY documents share the "
+           "same main category. Strongly prefer reusing common top-level "
+           "categories such as Documents, Work, Finance, Projects, Reports, or "
+           "Notes. Never invent a narrow main category for a single document. "
+           "Subcategory must be relevant and must "
            "not repeat the main category. Do not explain your answer, add extra "
            "lines, or use label words like 'Category' or 'Subcategory'.";
 }
@@ -815,8 +824,12 @@ std::string directory_categorization_system_prompt() {
            "by the overall theme suggested by its name and path context. If the "
            "prompt includes an 'Allowed main categories' list, choose the main "
            "category from that list only. Reply with exactly one line in the format "
-           "<Main category> : <Subcategory>. Main category must be broad (one or "
-           "two words, plural). Subcategory must be specific, relevant, and must "
+           "<Main category> : <Subcategory>. Main category must be VERY broad and "
+           "general (one or two words, plural) so that MANY directories share the "
+           "same main category. Strongly prefer reusing common top-level "
+           "categories such as Projects, Work, Media, Software, or Archives. "
+           "Never invent a narrow main category for a single directory. "
+           "Subcategory must be relevant and must "
            "not repeat the main category. Do not explain your answer, add extra "
            "lines, or use label words like 'Category' or 'Subcategory'.";
 }

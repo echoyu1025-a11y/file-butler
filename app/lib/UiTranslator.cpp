@@ -56,6 +56,8 @@ constexpr auto kActionManageCategoryWhitelists =
 constexpr auto kActionResetLearnedBehavior =
     QT_TRANSLATE_NOOP("UiTranslator", "Reset learned behavior…");
 constexpr auto kActionClearCache = QT_TRANSLATE_NOOP("UiTranslator", "Clear cache…");
+constexpr auto kActionCleanupSuggestions =
+    QT_TRANSLATE_NOOP("UiTranslator", "Cleanup Suggestions…");
 constexpr auto kActionPromptLogging =
     QT_TRANSLATE_NOOP("UiTranslator", "Log prompts and responses to stdout");
 constexpr auto kActionRunLargeWhitelistLlmTest =
@@ -374,6 +376,7 @@ void UiTranslator::translate_menus_and_actions() const
         {deps_.actions.manage_whitelists_action, kActionManageCategoryWhitelists},
         {deps_.actions.reset_learning_action, kActionResetLearnedBehavior},
         {deps_.actions.clear_cache_action, kActionClearCache},
+        {deps_.actions.cleanup_scan_action, kActionCleanupSuggestions},
         {deps_.actions.development_prompt_logging_action, kActionPromptLogging},
         {deps_.actions.run_large_whitelist_llm_test_action, kActionRunLargeWhitelistLlmTest},
         {deps_.actions.consistency_pass_action, kActionRunConsistencyPass},
