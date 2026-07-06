@@ -46,7 +46,6 @@ Analyse un dossier et recense quatre catégories de fichiers « peut-être inuti
 
 ### Windows
 - Téléchargez l'artefact `file-butler-windows` depuis la dernière compilation réussie sur la page [Actions](https://github.com/echoyu1025-a11y/file-butler/actions)
-- Ou compilez depuis les sources en suivant [docs/UPSTREAM_README.md](../UPSTREAM_README.md)
 
 ---
 
@@ -71,7 +70,7 @@ Vous pouvez changer la langue de l'interface (15 langues) à tout moment en bas 
 
 ## 🔧 Compilation depuis les sources
 
-Les étapes complètes de compilation pour macOS / Windows / Linux se trouvent dans [docs/UPSTREAM_README.md](../UPSTREAM_README.md). Version rapide pour macOS :
+Version rapide pour macOS :
 
 ```bash
 brew install qt curl jsoncpp sqlite openssl fmt spdlog mediainfo cmake git pkgconfig libffi

@@ -46,7 +46,6 @@ Durchsucht einen Ordner und listet vier Arten von „möglicherweise unnötigen"
 
 ### Windows
 - Lade das Artefakt `file-butler-windows` aus dem letzten erfolgreichen Build auf der [Actions](https://github.com/echoyu1025-a11y/file-butler/actions)-Seite herunter
-- Oder baue aus dem Quellcode gemäß [docs/UPSTREAM_README.md](../UPSTREAM_README.md)
 
 ---
 
@@ -71,7 +70,7 @@ Die Oberflächensprache (15 Sprachen) lässt sich jederzeit unten rechts umschal
 
 ## 🔧 Aus dem Quellcode bauen
 
-Die vollständigen Build-Schritte für macOS / Windows / Linux stehen in [docs/UPSTREAM_README.md](../UPSTREAM_README.md). Schnellversion für macOS:
+Schnellversion für macOS:
 
 ```bash
 brew install qt curl jsoncpp sqlite openssl fmt spdlog mediainfo cmake git pkgconfig libffi

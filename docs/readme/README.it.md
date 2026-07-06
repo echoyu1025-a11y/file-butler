@@ -46,7 +46,6 @@ Analizza una cartella e riporta quattro categorie di file «forse non necessari�
 
 ### Windows
 - Scarica l'artefatto `file-butler-windows` dall'ultima build riuscita nella pagina [Actions](https://github.com/echoyu1025-a11y/file-butler/actions)
-- Oppure compila dai sorgenti seguendo [docs/UPSTREAM_README.md](../UPSTREAM_README.md)
 
 ---
 
@@ -71,7 +70,7 @@ Puoi cambiare la lingua dell'interfaccia (15 lingue) in qualsiasi momento in bas
 
 ## 🔧 Compilazione dai sorgenti
 
-I passaggi completi di compilazione per macOS / Windows / Linux sono in [docs/UPSTREAM_README.md](../UPSTREAM_README.md). Versione rapida per macOS:
+Versione rapida per macOS:
 
 ```bash
 brew install qt curl jsoncpp sqlite openssl fmt spdlog mediainfo cmake git pkgconfig libffi

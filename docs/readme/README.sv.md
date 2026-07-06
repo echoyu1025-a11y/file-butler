@@ -46,7 +46,6 @@ Skannar en mapp och redovisar fyra typer av filer som «kanske inte behövs»:
 
 ### Windows
 - Hämta artefakten `file-butler-windows` från det senaste lyckade bygget på sidan [Actions](https://github.com/echoyu1025-a11y/file-butler/actions)
-- Eller bygg från källkod enligt [docs/UPSTREAM_README.md](../UPSTREAM_README.md)
 
 ---
 
@@ -71,7 +70,7 @@ Du kan byta gränssnittsspråk (15 språk) när som helst längst ned till höge
 
 ## 🔧 Bygga från källkod
 
-Fullständiga bygginstruktioner för macOS / Windows / Linux finns i [docs/UPSTREAM_README.md](../UPSTREAM_README.md). Snabbversion för macOS:
+Snabbversion för macOS:
 
 ```bash
 brew install qt curl jsoncpp sqlite openssl fmt spdlog mediainfo cmake git pkgconfig libffi

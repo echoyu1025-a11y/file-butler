@@ -46,7 +46,6 @@ Skannar möppu og telur fram fjórar tegundir skráa sem «gætu verið óþarfa
 
 ### Windows
 - Sæktu `file-butler-windows`-skrána úr nýjustu vel heppnuðu byggingunni á [Actions](https://github.com/echoyu1025-a11y/file-butler/actions)-síðunni
-- Eða byggðu frá grunnkóða samkvæmt [docs/UPSTREAM_README.md](../UPSTREAM_README.md)
 
 ---
 
@@ -71,7 +70,7 @@ Hægt er að skipta um viðmótstungumál (15 tungumál) hvenær sem er neðst t
 
 ## 🔧 Bygging frá grunnkóða
 
-Full byggingarskref fyrir macOS / Windows / Linux eru í [docs/UPSTREAM_README.md](../UPSTREAM_README.md). Flýtiútgáfa fyrir macOS:
+Flýtiútgáfa fyrir macOS:
 
 ```bash
 brew install qt curl jsoncpp sqlite openssl fmt spdlog mediainfo cmake git pkgconfig libffi

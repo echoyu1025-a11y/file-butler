@@ -46,7 +46,6 @@ Skanner en mappe og rapporterer fire typer filer du «kanskje ikke trenger»:
 
 ### Windows
 - Last ned artefakten `file-butler-windows` fra siste vellykkede bygg på [Actions](https://github.com/echoyu1025-a11y/file-butler/actions)-siden
-- Eller bygg fra kildekode etter [docs/UPSTREAM_README.md](../UPSTREAM_README.md)
 
 ---
 
@@ -71,7 +70,7 @@ Du kan bytte grensesnittspråk (15 språk) når som helst nederst til høyre; sp
 
 ## 🔧 Bygge fra kildekode
 
-Fullstendige byggetrinn for macOS / Windows / Linux finnes i [docs/UPSTREAM_README.md](../UPSTREAM_README.md). Rask versjon for macOS:
+Rask versjon for macOS:
 
 ```bash
 brew install qt curl jsoncpp sqlite openssl fmt spdlog mediainfo cmake git pkgconfig libffi

@@ -46,7 +46,6 @@ Scans a folder and reports four kinds of files you may not need:
 
 ### Windows
 - Download the `file-butler-windows` artifact from the latest successful build on the [Actions](https://github.com/echoyu1025-a11y/file-butler/actions) page
-- Or build from source following [docs/UPSTREAM_README.md](../UPSTREAM_README.md)
 
 ---
 
@@ -71,7 +70,7 @@ You can switch the interface language (15 languages) at the bottom right at any 
 
 ## 🔧 Building from Source
 
-Full build steps for macOS / Windows / Linux are in [docs/UPSTREAM_README.md](../UPSTREAM_README.md). Quick version for macOS:
+Quick version for macOS:
 
 ```bash
 brew install qt curl jsoncpp sqlite openssl fmt spdlog mediainfo cmake git pkgconfig libffi

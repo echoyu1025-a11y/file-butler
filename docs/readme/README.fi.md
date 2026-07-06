@@ -46,7 +46,7 @@ Skannaa kansion ja luokittelee neljä «mahdollisesti tarpeetonta» tiedostotyyp
 
 ### Windows
 - Lataa `file-butler-windows`-artefakti viimeisimmästä onnistuneesta käännöksestä [Actions](https://github.com/echoyu1025-a11y/file-butler/actions)-sivulta
-- Tai käännä lähdekoodista ohjeiden [docs/UPSTREAM_README.md](../UPSTREAM_README.md) mukaan
+mukaan
 
 ---
 
@@ -71,7 +71,7 @@ Voit vaihtaa käyttöliittymän kielen (15 kieltä) milloin tahansa oikeasta ala
 
 ## 🔧 Kääntäminen lähdekoodista
 
-Täydelliset käännösohjeet macOS:lle / Windowsille / Linuxille ovat tiedostossa [docs/UPSTREAM_README.md](../UPSTREAM_README.md). Pikaversio macOS:lle:
+Pikaversio macOS:lle:
 
 ```bash
 brew install qt curl jsoncpp sqlite openssl fmt spdlog mediainfo cmake git pkgconfig libffi

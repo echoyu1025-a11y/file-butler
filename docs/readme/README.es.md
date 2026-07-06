@@ -46,7 +46,6 @@ Escanea una carpeta y clasifica cuatro tipos de archivos «posiblemente innecesa
 
 ### Windows
 - Descarga el artefacto `file-butler-windows` de la última compilación exitosa en la página de [Actions](https://github.com/echoyu1025-a11y/file-butler/actions)
-- O compílalo desde el código fuente siguiendo [docs/UPSTREAM_README.md](../UPSTREAM_README.md)
 
 ---
 
@@ -71,7 +70,7 @@ Puedes cambiar el idioma de la interfaz (15 idiomas) en cualquier momento desde 
 
 ## 🔧 Compilar desde el código fuente
 
-Los pasos completos de compilación para macOS / Windows / Linux están en [docs/UPSTREAM_README.md](../UPSTREAM_README.md). Versión rápida para macOS:
+Versión rápida para macOS:
 
 ```bash
 brew install qt curl jsoncpp sqlite openssl fmt spdlog mediainfo cmake git pkgconfig libffi

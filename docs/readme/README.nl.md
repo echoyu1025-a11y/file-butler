@@ -46,7 +46,6 @@ Scant een map en rapporteert vier soorten «mogelijk overbodige» bestanden:
 
 ### Windows
 - Download het artefact `file-butler-windows` van de laatste geslaagde build op de [Actions](https://github.com/echoyu1025-a11y/file-butler/actions)-pagina
-- Of bouw vanaf de broncode volgens [docs/UPSTREAM_README.md](../UPSTREAM_README.md)
 
 ---
 
@@ -71,7 +70,7 @@ Je kunt de interfacetaal (15 talen) op elk moment rechtsonder wisselen; de taal 
 
 ## 🔧 Bouwen vanaf de broncode
 
-De volledige bouwstappen voor macOS / Windows / Linux staan in [docs/UPSTREAM_README.md](../UPSTREAM_README.md). Snelle versie voor macOS:
+Snelle versie voor macOS:
 
 ```bash
 brew install qt curl jsoncpp sqlite openssl fmt spdlog mediainfo cmake git pkgconfig libffi

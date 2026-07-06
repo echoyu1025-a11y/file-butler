@@ -46,7 +46,6 @@ Scanner en mappe og opgør fire slags filer, du «måske ikke har brug for»:
 
 ### Windows
 - Hent artefaktet `file-butler-windows` fra det seneste vellykkede build på [Actions](https://github.com/echoyu1025-a11y/file-butler/actions)-siden
-- Eller byg fra kildekoden efter [docs/UPSTREAM_README.md](../UPSTREAM_README.md)
 
 ---
 
@@ -71,7 +70,7 @@ Du kan når som helst skifte grænsefladesprog (15 sprog) nederst til højre; ka
 
 ## 🔧 Byg fra kildekode
 
-De komplette byggetrin for macOS / Windows / Linux findes i [docs/UPSTREAM_README.md](../UPSTREAM_README.md). Hurtig version til macOS:
+Hurtig version til macOS:
 
 ```bash
 brew install qt curl jsoncpp sqlite openssl fmt spdlog mediainfo cmake git pkgconfig libffi

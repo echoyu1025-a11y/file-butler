@@ -46,7 +46,7 @@ Bir klasörü tarar ve «belki gereksiz» dosyaları dört kategoride raporlar:
 
 ### Windows
 - [Actions](https://github.com/echoyu1025-a11y/file-butler/actions) sayfasındaki en son başarılı derlemeden `file-butler-windows` çıktısını indirin
-- Veya [docs/UPSTREAM_README.md](../UPSTREAM_README.md) yönergelerine göre kaynaktan derleyin
+yönergelerine göre kaynaktan derleyin
 
 ---
 
@@ -71,7 +71,7 @@ Arayüzün sağ alt köşesinden dili (15 dil) istediğiniz zaman değiştirebil
 
 ## 🔧 Kaynaktan Derleme
 
-macOS / Windows / Linux için eksiksiz derleme adımları [docs/UPSTREAM_README.md](../UPSTREAM_README.md) dosyasındadır. macOS hızlı sürüm:
+dosyasındadır. macOS hızlı sürüm:
 
 ```bash
 brew install qt curl jsoncpp sqlite openssl fmt spdlog mediainfo cmake git pkgconfig libffi

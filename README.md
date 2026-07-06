@@ -46,7 +46,7 @@
 
 ### Windows
 - 到 [Actions](https://github.com/echoyu1025-a11y/file-butler/actions) 页面最近一次成功的构建里下载 `file-butler-windows` 产物
-- 或按 [docs/UPSTREAM_README.md](docs/UPSTREAM_README.md) 的说明从源码构建
+- 或按下方「从源码构建」的说明自行编译
 
 ---
 
@@ -71,7 +71,7 @@
 
 ## 🔧 从源码构建
 
-macOS / Windows / Linux 的完整构建步骤见 [docs/UPSTREAM_README.md](docs/UPSTREAM_README.md)。macOS 快速版：
+macOS 快速版：
 
 ```bash
 brew install qt curl jsoncpp sqlite openssl fmt spdlog mediainfo cmake git pkgconfig libffi
