@@ -2,8 +2,6 @@
 
 用 AI 帮你整理乱糟糟的文件夹，并找出值得清理的文件。支持 **macOS 和 Windows**，可完全离线运行。
 
-> 基于开源项目 [AI File Sorter](https://github.com/hyperfield/ai-file-sorter) 深度定制的中文版。遵循 AGPL-3.0 开源协议。
-
 ---
 
 ## ✨ 两大功能
@@ -78,8 +76,3 @@ cmake --build external/libzip/build
 cd app && make -j8 && ./bin/aifilesorter
 ```
 
-## 📄 许可与致谢
-
-- 本项目基于 [hyperfield/ai-file-sorter](https://github.com/hyperfield/ai-file-sorter) 修改，感谢原作者
-- 许可协议：[GNU AGPL-3.0](LICENSE) —— 你可以自由使用、修改、分发，衍生版本须同样开源
-- 本地推理由 [llama.cpp](https://github.com/ggerganov/llama.cpp) 驱动
