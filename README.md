@@ -1,6 +1,9 @@
+**简体中文** | [English](docs/readme/README.en.md) | [Français](docs/readme/README.fr.md) | [Deutsch](docs/readme/README.de.md) | [Español](docs/readme/README.es.md) | [Italiano](docs/readme/README.it.md) | [Nederlands](docs/readme/README.nl.md) | [한국어](docs/readme/README.ko.md) | [हिन्दी](docs/readme/README.hi.md) | [Türkçe](docs/readme/README.tr.md) | [Svenska](docs/readme/README.sv.md) | [Norsk](docs/readme/README.no.md) | [Dansk](docs/readme/README.da.md) | [Suomi](docs/readme/README.fi.md) | [Íslenska](docs/readme/README.is.md)
+
 # 文件管家（File Butler）
 
 用 AI 帮你整理乱糟糟的文件夹，并找出值得清理的文件。支持 **macOS 和 Windows**，可完全离线运行。
+
 
 ---
 
@@ -31,13 +34,13 @@
 ## 📥 下载安装
 
 ### macOS（Apple Silicon）
-1. 到 [Releases](../../releases) 页面下载 `.dmg`
+1. 到 [Releases](https://github.com/echoyu1025-a11y/file-butler/releases) 页面下载 `.dmg`
 2. 双击打开，把应用拖进「应用程序」文件夹
 3. 首次打开如被拦截：**右键点击应用 → 打开**（应用未做 Apple 公证）
 
 ### Windows
-- 到 [Actions](../../actions) 页面最近一次成功的构建里下载 `file-butler-windows` 产物
-- 或按 [README_EN.md](README_EN.md) 的说明从源码构建
+- 到 [Actions](https://github.com/echoyu1025-a11y/file-butler/actions) 页面最近一次成功的构建里下载 `file-butler-windows` 产物
+- 或按 [docs/UPSTREAM_README.md](docs/UPSTREAM_README.md) 的说明从源码构建
 
 ---
 
@@ -62,7 +65,7 @@
 
 ## 🔧 从源码构建
 
-macOS / Windows / Linux 的完整构建步骤见 [README_EN.md](README_EN.md)。macOS 快速版：
+macOS / Windows / Linux 的完整构建步骤见 [docs/UPSTREAM_README.md](docs/UPSTREAM_README.md)。macOS 快速版：
 
 ```bash
 brew install qt curl jsoncpp sqlite openssl fmt spdlog mediainfo cmake git pkgconfig libffi
