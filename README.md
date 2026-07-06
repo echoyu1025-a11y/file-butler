@@ -39,12 +39,22 @@
 
 ## 📥 下载安装
 
-### macOS（Apple Silicon）
-1. 到 [Releases](https://github.com/echoyu1025-a11y/file-butler/releases) 页面下载 `.dmg`
-2. 双击打开，把应用拖进「应用程序」文件夹
+<p align="center">
+  <a href="https://github.com/echoyu1025-a11y/file-butler/releases/download/v1.8.0-zh/FileButler-1.8.0-macos-arm64.dmg">
+    <img src="https://img.shields.io/badge/⬇%20一键下载-macOS%20安装包%20(.dmg)-185FA5?style=for-the-badge&logo=apple&logoColor=white" alt="下载 macOS 安装包">
+  </a>
+</p>
+
+<p align="center">
+  <sub>👆 点击直接下载 <b>FileButler-1.8.0-macos-arm64.dmg</b>（约 47 MB，适用于 Apple Silicon 芯片的 Mac）</sub>
+</p>
+
+### 🍎 macOS（Apple Silicon）安装步骤
+1. 点上方按钮下载安装包 **`FileButler-1.8.0-macos-arm64.dmg`**（也可到 [Releases](https://github.com/echoyu1025-a11y/file-butler/releases) 页面手动下载）
+2. 双击打开 `.dmg`，把应用拖进「应用程序」文件夹
 3. 首次打开如被拦截：**右键点击应用 → 打开**（应用未做 Apple 公证）
 
-### Windows
+### 🪟 Windows
 - 到 [Actions](https://github.com/echoyu1025-a11y/file-butler/actions) 页面最近一次成功的构建里下载 `file-butler-windows` 产物
 - 或按下方「从源码构建」的说明自行编译
 
