@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #ifndef UTILS_HPP
 #define UTILS_HPP
 

@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #ifndef MOVABLECATEGORIZEDFILE_HPP
 #define MOVABLECATEGORIZEDFILE_HPP
 

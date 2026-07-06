@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# File Butler — customized edition. Maintained by qianyu.
 set -euo pipefail
 
 LIBZIP_VERSION="1.11.4"

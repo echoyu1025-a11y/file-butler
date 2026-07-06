@@ -1,5 +1,3 @@
-<!-- File Butler — customized edition. Maintained by qianyu. -->
-
 # 快速入门指南
 
 AI 文件排序器可帮助您在审核和批准后整理文件。

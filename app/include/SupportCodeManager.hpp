@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 /**
  * @file SupportCodeManager.hpp
  * @brief Offline donation-code validation and prompt suppression helpers.

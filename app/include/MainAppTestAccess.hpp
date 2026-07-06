@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 /**
  * @file MainAppTestAccess.hpp
  * @brief Test-only accessors and helpers for MainApp.

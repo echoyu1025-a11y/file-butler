@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #include "DatabaseManager.hpp"
 #include "Types.hpp"
 #include "Logger.hpp"

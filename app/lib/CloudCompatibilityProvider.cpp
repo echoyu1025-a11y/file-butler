@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #include "CloudCompatibilityProvider.hpp"
 
 #include "CloudPathSupport.hpp"

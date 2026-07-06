@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 /**
  * @file SingleInstanceCoordinator.hpp
  * @brief Coordinates single-instance enforcement and activation handoff.

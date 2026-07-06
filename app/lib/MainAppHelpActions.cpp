@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #include "MainAppHelpActions.hpp"
 #include "AppInfo.hpp"
 #include "TranslationManager.hpp"

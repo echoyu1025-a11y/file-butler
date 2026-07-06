@@ -1,5 +1,3 @@
-<!-- File Butler — customized edition. Maintained by qianyu. -->
-
 # Trademarks
 
 This project is open source, but its name and branding are not licensed for general reuse.

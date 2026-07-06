@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# File Butler — customized edition. Maintained by qianyu.
 import argparse
 from pathlib import Path
 

@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #include "StoragePluginEntryPointRegistry.hpp"
 
 void StoragePluginEntryPointRegistry::register_factory(std::string entry_point_kind,

@@ -1,5 +1,4 @@
 #!/bin/sh
-# File Butler — customized edition. Maintained by qianyu.
 @APP_DIR_DECLARATION@
 CPU_LIB_DIR="$APP_DIR/lib/precompiled/cpu/bin"
 CUDA_LIB_DIR="$APP_DIR/lib/precompiled/cuda/bin"

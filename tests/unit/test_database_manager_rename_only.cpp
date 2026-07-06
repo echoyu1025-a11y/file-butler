@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #include <catch2/catch_test_macros.hpp>
 
 #include "DatabaseManager.hpp"

@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #include "MovableCategorizedFile.hpp"
 #include "Utils.hpp"
 #include "Logger.hpp"

@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #ifndef CATEGORIZATIONSESSION_HPP
 #define CATEGORIZATIONSESSION_HPP
 

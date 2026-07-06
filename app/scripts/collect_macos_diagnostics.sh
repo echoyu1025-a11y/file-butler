@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# File Butler — customized edition. Maintained by qianyu.
 set -euo pipefail
 
 usage() {

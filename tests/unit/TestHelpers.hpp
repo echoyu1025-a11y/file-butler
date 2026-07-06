@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 /**
  * @file TestHelpers.hpp
  * @brief Common utilities for unit tests (temp paths, env guards, Qt context).

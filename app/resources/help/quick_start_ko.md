@@ -1,5 +1,3 @@
-<!-- File Butler — customized edition. Maintained by qianyu. -->
-
 # 빠른 시작 가이드
 
 AI File Sorter는 사용자의 검토와 승인을 거친 뒤 파일을 정리할 수 있도록 도와줍니다.

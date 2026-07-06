@@ -1,5 +1,3 @@
-<!-- File Butler — customized edition. Maintained by qianyu. -->
-
 # Flytileidarvisir
 
 AI File Sorter hjalpar ther ad skipuleggja skrar eftir skodun og samthykki.

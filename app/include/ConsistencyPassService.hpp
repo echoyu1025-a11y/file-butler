@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #ifndef CONSISTENCY_PASS_SERVICE_HPP
 #define CONSISTENCY_PASS_SERVICE_HPP
 

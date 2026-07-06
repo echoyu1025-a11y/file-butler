@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# File Butler — customized edition. Maintained by qianyu.
 
 # Creates a self-contained macOS .app bundle for AI File Sorter.
 

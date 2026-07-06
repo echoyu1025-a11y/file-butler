@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #include "WindowsCudaProbe.hpp"
 
 #include <algorithm>

@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #ifndef MAIN_APP_EDIT_ACTIONS_HPP
 #define MAIN_APP_EDIT_ACTIONS_HPP
 

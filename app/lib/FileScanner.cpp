@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #include "FileScanner.hpp"
 #include "Logger.hpp"
 #include "Utils.hpp"

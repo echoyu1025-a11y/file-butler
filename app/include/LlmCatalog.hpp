@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #ifndef LLMCATALOG_HPP
 #define LLMCATALOG_HPP
 

@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #include "ImageRenameMetadataService.hpp"
 
 #include "Utils.hpp"

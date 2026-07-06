@@ -1,5 +1,3 @@
-<!-- File Butler — customized edition. Maintained by qianyu. -->
-
 # Scripts README
 
 ## build_llama_macos.sh

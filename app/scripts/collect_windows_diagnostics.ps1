@@ -1,4 +1,3 @@
-# File Butler — customized edition. Maintained by qianyu.
 param(
     [Alias("time-period")]
     [string]$TimePeriod,

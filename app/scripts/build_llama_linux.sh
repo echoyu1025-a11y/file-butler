@@ -1,5 +1,4 @@
 #!/bin/bash
-# File Butler — customized edition. Maintained by qianyu.
 set -e
 
 # Resolve script directory

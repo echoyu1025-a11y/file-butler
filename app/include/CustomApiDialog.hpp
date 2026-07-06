@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #ifndef CUSTOMAPIDIALOG_HPP
 #define CUSTOMAPIDIALOG_HPP
 

@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 /**
  * @file MediaRenameMetadataService.hpp
  * @brief Builds audio/video filename suggestions from embedded media metadata.

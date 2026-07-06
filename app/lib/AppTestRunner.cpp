@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #include "AppTestRunner.hpp"
 
 #include "CategorizationService.hpp"

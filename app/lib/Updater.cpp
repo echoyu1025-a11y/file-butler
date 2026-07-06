@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #include "Updater.hpp"
 #include "Logger.hpp"
 #include "UpdaterBuildConfig.hpp"

@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #ifndef LANGUAGE_HPP
 #define LANGUAGE_HPP
 

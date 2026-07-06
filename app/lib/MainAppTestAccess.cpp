@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #include "MainAppTestAccess.hpp"
 
 #ifdef AI_FILE_SORTER_TEST_BUILD

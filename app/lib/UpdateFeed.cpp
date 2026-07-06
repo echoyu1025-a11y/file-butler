@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #include "UpdateFeed.hpp"
 
 #include <algorithm>

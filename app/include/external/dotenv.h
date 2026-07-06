@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 // Copyright (c) 2018 Heikki Johannes Hildén <hildenjohannes@gmail.com>
 //
 // All rights reserved.

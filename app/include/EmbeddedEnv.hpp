@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #ifndef EMBEDDED_ENV_H
 #define EMBEDDED_ENV_H
 

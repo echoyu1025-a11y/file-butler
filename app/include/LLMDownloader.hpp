@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #pragma once
 #include "Settings.hpp"
 #include <atomic>

@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 #ifndef IMAGE_RENAME_METADATA_SERVICE_HPP
 #define IMAGE_RENAME_METADATA_SERVICE_HPP
 

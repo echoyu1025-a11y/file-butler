@@ -1,5 +1,3 @@
-// File Butler — customized edition. Maintained by qianyu.
-
 /**
  * @file CacheMaintenanceDialog.hpp
  * @brief Settings dialog for clearing cache and log data.
