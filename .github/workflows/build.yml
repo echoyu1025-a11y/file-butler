@@ -34,11 +34,15 @@ jobs:
           sudo apt-get install -y \
             build-essential cmake ninja-build pkg-config \
             libcurl4-openssl-dev libjsoncpp-dev libsqlite3-dev libssl-dev \
-            libfmt-dev libspdlog-dev libmediainfo-dev
+            libfmt-dev libspdlog-dev
+          # 注意: 不装 libmediainfo-dev —— 它依赖 libcurl4-gnutls-dev,
+          # 与本项目用的 libcurl4-openssl-dev 互斥。CI 用内建元数据回退即可,
+          # 通过下方 -DAI_FILE_SORTER_REQUIRE_MEDIAINFOLIB=OFF 关闭强制要求。
 
       - name: Configure
         run: |
-          cmake -S app -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+          cmake -S app -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release \
+            -DAI_FILE_SORTER_REQUIRE_MEDIAINFOLIB=OFF
 
       - name: Build
         run: cmake --build build
