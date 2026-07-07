@@ -71,9 +71,10 @@ jobs:
           git clone https://github.com/microsoft/vcpkg.git "$env:GITHUB_WORKSPACE\vcpkg"
           & "$env:GITHUB_WORKSPACE\vcpkg\bootstrap-vcpkg.bat"
 
-      # vcpkg 二进制缓存：Qt 等重依赖只在首次编译，之后命中缓存秒过
-      - name: Cache vcpkg binary artifacts
-        uses: actions/cache@v4
+      # vcpkg 二进制缓存：Qt 等重依赖只在首次编译，之后命中缓存秒过。
+      # 拆成 restore/save 两步，save 用 always() —— 即使后续步骤失败也保住 Qt 缓存。
+      - name: Restore vcpkg binary cache
+        uses: actions/cache/restore@v4
         with:
           path: ~/AppData/Local/vcpkg/archives
           key: vcpkg-${{ runner.os }}-${{ hashFiles('app/vcpkg.json') }}
@@ -90,7 +91,8 @@ jobs:
             "blas=off" `
             "vcpkgroot=$vcpkgRoot"
 
-      # 只构建 Standard 变体（不是 3 个），大幅缩短时间
+      # 只构建 Standard 变体（不是 3 个），大幅缩短时间。
+      # windows-latest 镜像现在是 VS2026，必须显式指定生成器（脚本默认 VS2022 已不存在）。
       - name: Build Windows app (Standard variant)
         shell: pwsh
         run: |
@@ -99,7 +101,16 @@ jobs:
             -Configuration Release `
             -VcpkgRoot $vcpkgRoot `
             -Variants Standard `
+            -Generator "Visual Studio 18 2026" `
             -Parallel 4
+
+      # 无论构建成败都保存 vcpkg 缓存（Qt 编译 1.7 小时，绝不能因失败而丢）
+      - name: Save vcpkg binary cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/AppData/Local/vcpkg/archives
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('app/vcpkg.json') }}
 
       # 把带全部依赖 DLL 的输出目录打成免安装 zip
       - name: Package portable zip
