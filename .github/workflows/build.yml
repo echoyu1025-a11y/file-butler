@@ -3,16 +3,18 @@ name: Build
 on:
   push:
     branches: [ main, dev ]
+    tags: [ 'v*' ]           # 打 v* 标签时额外把 Windows 安装包传到 Releases
   pull_request:
     branches: [ main, dev ]
   workflow_dispatch:
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Linux: 构建 + 测试（用来出绿勾）
+  # ---------------------------------------------------------------------------
   build-linux:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -20,7 +22,7 @@ jobs:
           submodules: recursive
 
       - name: Set up Qt
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           version: '6.6.3'
           host: linux
@@ -29,7 +31,10 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake ninja-build libcurl4-openssl-dev libjsoncpp-dev libsqlite3-dev libssl-dev libfmt-dev libspdlog-dev
+          sudo apt-get install -y \
+            build-essential cmake ninja-build pkg-config \
+            libcurl4-openssl-dev libjsoncpp-dev libsqlite3-dev libssl-dev \
+            libfmt-dev libspdlog-dev libmediainfo-dev
 
       - name: Configure
         run: |
@@ -41,8 +46,12 @@ jobs:
       - name: Run ctest
         run: cd build && ctest --output-on-failure
 
+  # ---------------------------------------------------------------------------
+  # Windows: 构建 + 打成免安装 zip + (打标签时) 上传到 Releases
+  # ---------------------------------------------------------------------------
   build-windows:
     runs-on: windows-latest
+    timeout-minutes: 120
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -58,7 +67,16 @@ jobs:
           git clone https://github.com/microsoft/vcpkg.git "$env:GITHUB_WORKSPACE\vcpkg"
           & "$env:GITHUB_WORKSPACE\vcpkg\bootstrap-vcpkg.bat"
 
-      - name: Build llama runtime
+      # vcpkg 二进制缓存：Qt 等重依赖只在首次编译，之后命中缓存秒过
+      - name: Cache vcpkg binary artifacts
+        uses: actions/cache@v4
+        with:
+          path: ~/AppData/Local/vcpkg/archives
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('app/vcpkg.json') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-
+
+      - name: Build llama runtime (CPU only)
         shell: pwsh
         run: |
           $vcpkgRoot = "$env:GITHUB_WORKSPACE\vcpkg"
@@ -68,21 +86,40 @@ jobs:
             "blas=off" `
             "vcpkgroot=$vcpkgRoot"
 
-      - name: Build and test Windows app
+      # 只构建 Standard 变体（不是 3 个），大幅缩短时间
+      - name: Build Windows app (Standard variant)
         shell: pwsh
         run: |
           $vcpkgRoot = "$env:GITHUB_WORKSPACE\vcpkg"
           & "$env:GITHUB_WORKSPACE\app\build_windows.ps1" `
             -Configuration Release `
             -VcpkgRoot $vcpkgRoot `
-            -BuildTests `
-            -RunTests `
+            -Variants Standard `
             -Parallel 4
 
-      # 把 Windows 构建产物打包成可下载的 artifact（在 Actions 运行页面下载）
-      - name: Upload Windows build artifact
+      # 把带全部依赖 DLL 的输出目录打成免安装 zip
+      - name: Package portable zip
+        shell: pwsh
+        run: |
+          $out = "$env:GITHUB_WORKSPACE\app\build-windows\Release"
+          if (-not (Test-Path "$out\aifilesorter.exe")) {
+            Write-Error "构建产物缺失: $out\aifilesorter.exe"
+            exit 1
+          }
+          $zip = "$env:GITHUB_WORKSPACE\FileButler-windows-x64.zip"
+          Compress-Archive -Path "$out\*" -DestinationPath $zip -Force
+          Write-Host "已生成 $zip"
+
+      - name: Upload Windows zip (Actions artifact)
         uses: actions/upload-artifact@v4
         with:
-          name: file-butler-windows
-          path: app/build-windows/Release/
-          if-no-files-found: warn
+          name: FileButler-windows-x64
+          path: FileButler-windows-x64.zip
+          if-no-files-found: error
+
+      # 只有推 v* 标签时，才把 zip 传到对应的 GitHub Release
+      - name: Publish zip to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: FileButler-windows-x64.zip
