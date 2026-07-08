@@ -43,10 +43,14 @@
   <a href="https://github.com/echoyu1025-a11y/file-butler/releases/download/v1.8.0-zh/FileButler-1.8.0-macos-arm64.dmg">
     <img src="https://img.shields.io/badge/⬇%20一键下载-macOS%20安装包%20(.dmg)-185FA5?style=for-the-badge&logo=apple&logoColor=white" alt="下载 macOS 安装包">
   </a>
+  &nbsp;&nbsp;
+  <a href="https://github.com/echoyu1025-a11y/file-butler/releases/download/v1.8.0-zh/FileButler-windows-x64.zip">
+    <img src="https://img.shields.io/badge/⬇%20一键下载-Windows%20免安装版%20(.zip)-185FA5?style=for-the-badge&logoColor=white" alt="下载 Windows 免安装版">
+  </a>
 </p>
 
 <p align="center">
-  <sub>👆 点击直接下载 <b>FileButler-1.8.0-macos-arm64.dmg</b>（约 47 MB，适用于 Apple Silicon 芯片的 Mac）</sub>
+  <sub>🍎 macOS：<b>FileButler-1.8.0-macos-arm64.dmg</b>（约 47 MB，Apple Silicon）&nbsp;&nbsp;|&nbsp;&nbsp;🪟 Windows：<b>FileButler-windows-x64.zip</b>（约 45 MB，64 位）</sub>
 </p>
 
 ### 🍎 macOS（Apple Silicon）安装步骤
@@ -54,9 +58,11 @@
 2. 双击打开 `.dmg`，把应用拖进「应用程序」文件夹
 3. 首次打开如被拦截：**右键点击应用 → 打开**（应用未做 Apple 公证）
 
-### 🪟 Windows
-- 到 [Actions](https://github.com/echoyu1025-a11y/file-butler/actions) 页面最近一次成功的构建里下载 `file-butler-windows` 产物
-- 或按下方「从源码构建」的说明自行编译
+### 🪟 Windows（免安装版）安装步骤
+1. 点上方按钮下载 **`FileButler-windows-x64.zip`**（也可到 [Releases](https://github.com/echoyu1025-a11y/file-butler/releases) 页面手动下载）
+2. 右键 zip → **全部解压缩** 到任意文件夹
+3. 双击文件夹里的 **`aifilesorter.exe`** 即可运行（无需安装）
+4. 如被 Windows Defender SmartScreen 拦截：点「更多信息」→「仍要运行」（应用未做代码签名）
 
 ---
 
